@@ -97,3 +97,32 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Large binary asset files — track these with Git LFS instead of committing directly.
+# Run: git lfs install && git lfs track "*.psd" (etc.) after installing Git LFS.
+# See .gitattributes for LFS-ready patterns.
+# Uncomment lines below ONLY if you intentionally want to exclude these from the repo entirely:
+# *.psd
+# *.wav
+# *.mp3
+# *.ogg
+# *.aiff
+# *.aif
+# *.mp4
+# *.mov
+# *.avi
+# *.wmv
+# *.mkv
+# *.webm
+# *.fbx
+# *.tga
+# *.exr
+# *.hdr
