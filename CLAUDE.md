@@ -1,5 +1,5 @@
 # Code Comments
-- Add comments to help understand the code.
+- Add comments to help understand the code. add comments for each function class and important parts
 - Only explain non-trivial decisions — avoid stating the obvious.
 
 # Unity UI Hierarchy
