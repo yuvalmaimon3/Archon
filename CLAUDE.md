@@ -39,3 +39,13 @@ Write production-quality Unity C# code as a professional.
 
 ## Output
 - Output clean, concise, and efficient code suitable for real game development.
+
+
+## git
+If you modified files, at the end of the task automatically run:
+
+git add -A
+git commit -m "<short descriptive commit message>"
+
+If the automatic commit fails, stop and report the exact error.
+Do not fix Git errors unless I explicitly asked for a Git-related task.
