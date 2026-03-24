@@ -29,7 +29,7 @@ public class DebugMenuUI : MonoBehaviour
     [SerializeField] private Button startClientButton; // instantly joins localhost as client — no join code needed
 
     [Header("Common")]
-    [SerializeField] private Button restartHostButton; // reloads the current scene
+    [SerializeField] private Button restartButton; // reloads the current scene
     [SerializeField] private Button exitButton;    // quits the game (or stops Play mode in Editor)
 
     // Colors used to visually hint whether the Start button is active or inactive
@@ -63,9 +63,20 @@ public class DebugMenuUI : MonoBehaviour
     /// </summary>
     public void OnStart()
     {
-        GameManager.Instance?.StartGame();             // set IsGameStarted = true → movement unlocked
-        NetworkManager.Singleton?.StartHost();         // start as host so others can join
-        Refresh();                                     // update button visibility
+        Debug.Log("[DebugMenuUI] Start Host clicked.");
+
+        if (GameManager.Instance == null) { Debug.LogError("[DebugMenuUI] GameManager not found!"); return; }
+        if (NetworkManager.Singleton == null) { Debug.LogError("[DebugMenuUI] NetworkManager not found!"); return; }
+
+        GameManager.Instance.StartGame();   // set IsGameStarted = true → movement unlocked
+
+        bool started = NetworkManager.Singleton.StartHost(); // start as host — NGO will auto-spawn the Player prefab
+        if (started)
+            Debug.Log("[DebugMenuUI] Host started. Player should spawn at scene center.");
+        else
+            Debug.LogError("[DebugMenuUI] StartHost() returned false — check NetworkManager setup.");
+
+        Refresh(); // update button visibility
     }
 
     /// <summary>

@@ -351,13 +351,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efbaa23d7c75ffa4aa59ae8cf350a223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startHostButton: {fileID: 0}
+  startHostButton: {fileID: 996904158}
   stopButton: {fileID: 186825817}
   joinCodeLabel: {fileID: 0}
   joinCodeInput: {fileID: 0}
   joinButton: {fileID: 0}
   startClientButton: {fileID: 1131227046}
-  restartHostButton: {fileID: 0}
+  restartButton: {fileID: 750647715}
   exitButton: {fileID: 1176729628}
 --- !u!114 &170898269
 MonoBehaviour:
