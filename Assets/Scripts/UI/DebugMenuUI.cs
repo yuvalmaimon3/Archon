@@ -28,12 +28,6 @@ public class DebugMenuUI : MonoBehaviour
 
     private void Start()
     {
-        startButton.onClick  .AddListener(OnStart);
-        stopButton.onClick   .AddListener(OnStop);
-        joinButton.onClick   .AddListener(OnJoin);
-        restartButton.onClick.AddListener(OnRestart);
-        exitButton.onClick   .AddListener(OnExit);
-
         if (SessionManager.Instance != null)
             SessionManager.Instance.OnJoinCodeReceived += ShowJoinCode;
 
@@ -48,14 +42,16 @@ public class DebugMenuUI : MonoBehaviour
 
     // -------------------------------------------------------------------------
 
-    private void OnStart()
+    // Called by StartButton OnClick() in the Inspector
+    public void OnStart()
     {
         GameManager.Instance?.StartGame();
         NetworkManager.Singleton?.StartHost();
         Refresh();
     }
 
-    private async void OnJoin()
+    // Called by JoinButton OnClick() in the Inspector
+    public async void OnJoin()
     {
         string code = joinCodeInput != null ? joinCodeInput.text.Trim() : "";
         if (string.IsNullOrEmpty(code)) return;
@@ -69,7 +65,8 @@ public class DebugMenuUI : MonoBehaviour
         Refresh();
     }
 
-    private void OnStop()
+    // Called by StopButton OnClick() in the Inspector
+    public void OnStop()
     {
         GameManager.Instance?.StopGame();
 
@@ -82,14 +79,16 @@ public class DebugMenuUI : MonoBehaviour
         Refresh();
     }
 
-    private void OnRestart()
+    // Called by RestartButton OnClick() in the Inspector
+    public void OnRestart()
     {
         GameManager.Instance?.StopGame();
         NetworkManager.Singleton?.Shutdown();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    private void OnExit()
+    // Called by ExitButton OnClick() in the Inspector
+    public void OnExit()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

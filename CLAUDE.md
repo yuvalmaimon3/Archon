@@ -1,3 +1,5 @@
+important the project should be clear as possible so i can be involve in the code and on the whole process
+
 # Code Comments
 - Add comments to help understand the code. add comments for each function class and important parts
 - Only explain non-trivial decisions — avoid stating the obvious.
@@ -23,6 +25,7 @@ Write production-quality Unity C# code as a professional.
 - Use meaningful, consistent names for variables, methods, and classes.
 - Write short, readable methods with minimal nesting.
 - Handle edge cases and errors cleanly.
+- Add logs in important places so i can get feedbacks when i test the game
 
 ## Performance
 - Avoid unnecessary allocations and expensive operations in Update loops.
