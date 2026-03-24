@@ -351,13 +351,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efbaa23d7c75ffa4aa59ae8cf350a223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startButton: {fileID: 996904158}
+  startHostButton: {fileID: 0}
   stopButton: {fileID: 186825817}
   joinCodeLabel: {fileID: 0}
   joinCodeInput: {fileID: 0}
   joinButton: {fileID: 0}
   startClientButton: {fileID: 1131227046}
-  restartButton: {fileID: 750647715}
+  restartHostButton: {fileID: 0}
   exitButton: {fileID: 1176729628}
 --- !u!114 &170898269
 MonoBehaviour:
@@ -1973,7 +1973,7 @@ GameObject:
   - component: {fileID: 996904159}
   - component: {fileID: 996904158}
   m_Layer: 0
-  m_Name: StartButton
+  m_Name: StartHostButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3202,7 +3202,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Start
+  m_text: Start Host
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

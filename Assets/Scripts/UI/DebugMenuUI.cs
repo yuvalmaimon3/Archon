@@ -17,7 +17,7 @@ public class DebugMenuUI : MonoBehaviour
     // Drag the corresponding GameObjects from the Hierarchy into these slots in the Inspector
 
     [Header("Host")]
-    [SerializeField] private Button    startButton;   // shows when game is NOT started
+    [SerializeField] private Button    startHostButton;   // shows when game is NOT started
     [SerializeField] private Button    stopButton;    // shows when game IS started
     [SerializeField] private TMP_Text  joinCodeLabel; // displays the relay join code after hosting
 
@@ -29,7 +29,7 @@ public class DebugMenuUI : MonoBehaviour
     [SerializeField] private Button startClientButton; // instantly joins localhost as client — no join code needed
 
     [Header("Common")]
-    [SerializeField] private Button restartButton; // reloads the current scene
+    [SerializeField] private Button restartHostButton; // reloads the current scene
     [SerializeField] private Button exitButton;    // quits the game (or stops Play mode in Editor)
 
     // Colors used to visually hint whether the Start button is active or inactive
@@ -164,7 +164,7 @@ public class DebugMenuUI : MonoBehaviour
         bool running = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
 
         // Swap Start ↔ Stop depending on whether the game is running
-        startButton.gameObject.SetActive(!started);
+        startHostButton.gameObject.SetActive(!started);
         stopButton .gameObject.SetActive(started);
 
         // Hide the Join section once a connection is active (no point joining when already connected)
@@ -176,7 +176,7 @@ public class DebugMenuUI : MonoBehaviour
             joinCodeLabel.text = "";
 
         // Green when clickable, grey when already started
-        SetButtonColor(startButton, started ? InactiveColor : ActiveColor);
+        SetButtonColor(startHostButton, started ? InactiveColor : ActiveColor);
     }
 
     /// <summary>Changes the background color of a button's Image component.</summary>
