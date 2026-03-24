@@ -39,7 +39,16 @@ public class CameraFollow : MonoBehaviour
         // LateUpdate runs after all Update() calls — important for cameras so the player
         // has already moved before we reposition the camera, preventing jitter
 
-        if (target == null) return;
+        // Player doesn't exist yet (NGO hasn't spawned it) — keep searching every frame
+        if (target == null)
+        {
+            var player = GameObject.FindWithTag("Player");
+            if (player == null) return;
+
+            // Found the spawned player — lock in the offset from the camera's current position
+            target  = player.transform;
+            _offset = transform.position - target.position;
+        }
 
         // Where the camera should be this frame
         Vector3 desired = target.position + _offset;

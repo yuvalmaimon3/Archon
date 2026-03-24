@@ -1,7 +1,7 @@
 important the project should be clear as possible so i can be involve in the code and on the whole process
 
 # Code Comments
-- Add comments to help understand the code. add comments for each function class and important parts
+- Add comments to help understand the code. add comments for each function class and expalnd what it do, in addition add comments inside function and classes when needed
 - Only explain non-trivial decisions — avoid stating the obvious.
 
 # Unity UI Hierarchy

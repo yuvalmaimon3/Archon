@@ -25,6 +25,9 @@ public class DebugMenuUI : MonoBehaviour
     [SerializeField] private TMP_InputField joinCodeInput; // text field where client types the join code
     [SerializeField] private Button         joinButton;    // client clicks this to connect
 
+    [Header("Quick Test (no Relay)")]
+    [SerializeField] private Button startClientButton; // instantly joins localhost as client — no join code needed
+
     [Header("Common")]
     [SerializeField] private Button restartButton; // reloads the current scene
     [SerializeField] private Button exitButton;    // quits the game (or stops Play mode in Editor)
@@ -80,6 +83,20 @@ public class DebugMenuUI : MonoBehaviour
             NetworkManager.Singleton?.StartClient(); // fallback: direct connect (LAN only)
 
         GameManager.Instance?.StartGame(); // unlock movement after connecting
+        Refresh();
+    }
+
+    /// <summary>
+    /// START CLIENT button — directly connects to localhost as a client. No Relay, no join code.
+    /// Use this for quick local testing: run the game twice (or use ParrelSync),
+    /// press Start on one instance and Start Client on the other.
+    /// </summary>
+    public void OnStartClient()
+    {
+        // Bypass everything — just connect directly to localhost
+        // Avoid ?. on Unity objects — Unity overrides == null, so ?. can bypass that check
+        if (NetworkManager.Singleton != null) NetworkManager.Singleton.StartClient();
+        if (GameManager.Instance != null)     GameManager.Instance.StartGame();
         Refresh();
     }
 
