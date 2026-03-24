@@ -1,37 +1,51 @@
 using UnityEngine;
 
 /// <summary>
-/// Follows the player with a fixed offset, matching Archero's angled top-down perspective.
-/// The camera position and angle are set in the scene — this script only drives the follow.
+/// Makes the camera smoothly follow a target (the player).
+/// The camera keeps a fixed offset from the player — it doesn't rotate, just moves.
+///
+/// The angle and starting position are set directly in the scene (not in code).
+/// This script just maintains that offset while the player moves.
 /// </summary>
 public class CameraFollow : MonoBehaviour
 {
     [Header("Target")]
-    [SerializeField] private Transform target;
+    [SerializeField] private Transform target; // the player transform to follow
 
     [Header("Follow")]
-    [SerializeField] private float smoothSpeed = 10f;
+    [SerializeField] private float smoothSpeed = 10f; // higher = snappier follow, lower = more lag
 
-    // Computed once at start from the camera's initial placement in the scene
+    // The distance and direction from the target to the camera, calculated once at start
     private Vector3 _offset;
 
     private void Start()
     {
+        // If no target was assigned in the Inspector, try to find the player automatically by tag
         if (target == null)
         {
             var player = GameObject.FindWithTag("Player");
             if (player != null) target = player.transform;
         }
 
+        // Lock in the offset based on where the camera is placed in the scene
+        // This means you can position/angle the camera however you want in the Editor
+        // and this script will maintain that exact relative position
         if (target != null)
             _offset = transform.position - target.position;
     }
 
     private void LateUpdate()
     {
+        // LateUpdate runs after all Update() calls — important for cameras so the player
+        // has already moved before we reposition the camera, preventing jitter
+
         if (target == null) return;
 
+        // Where the camera should be this frame
         Vector3 desired = target.position + _offset;
+
+        // Lerp = Linear Interpolation: smoothly moves from current position toward desired
+        // smoothSpeed * Time.deltaTime controls how fast it catches up each frame
         transform.position = Vector3.Lerp(transform.position, desired, smoothSpeed * Time.deltaTime);
     }
 }
