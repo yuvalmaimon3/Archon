@@ -5,6 +5,10 @@ using UnityEngine;
 /// Generic health component — works for players, enemies, or any damageable object.
 /// Implements IDamageable to receive damage events.
 ///
+/// If an ElementStatusController exists on the same GameObject, Health will forward
+/// elemental data from incoming hits to it automatically. Health does not own or
+/// manage elemental state — it only acts as a bridge.
+///
 /// Intentionally contains no game-specific logic: no Player/Enemy references,
 /// no tag checks, no attack knowledge. Other systems react through events.
 /// </summary>
@@ -39,12 +43,21 @@ public class Health : MonoBehaviour, IDamageable
     /// </summary>
     public event Action<DamageInfo> OnDeath;
 
+    // ── Private references ───────────────────────────────────────────────────
+
+    // Cached once in Awake — null if this GameObject has no elemental component.
+    // Avoiding GetComponent per hit keeps TakeDamage allocation-free.
+    private ElementStatusController _elementStatus;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
         // Start at full health
         CurrentHealth = maxHealth;
+
+        // Optional — not every damageable object has an elemental component
+        TryGetComponent(out _elementStatus);
     }
 
     // ── IDamageable ──────────────────────────────────────────────────────────
@@ -67,6 +80,11 @@ public class Health : MonoBehaviour, IDamageable
 
         // Notify subscribers (health bar, hit flash, audio)
         OnDamaged?.Invoke(CurrentHealth, maxHealth);
+
+        // Forward elemental data to ElementStatusController if present and the hit carries an element.
+        // Health does not own elemental state — it only passes the data along.
+        if (_elementStatus != null && damageInfo.ElementApplication.Element != ElementType.None)
+            _elementStatus.ApplyElement(damageInfo.ElementApplication);
 
         if (CurrentHealth == 0)
             Die(damageInfo);

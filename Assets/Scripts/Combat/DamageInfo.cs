@@ -24,11 +24,22 @@ public readonly struct DamageInfo
     /// </summary>
     public readonly Vector3 HitDirection;
 
-    public DamageInfo(int amount, GameObject source, Vector3 hitPoint, Vector3 hitDirection)
+    /// <summary>
+    /// Optional elemental data carried by this hit.
+    /// ElementApplication.Element == None means this hit carries no element.
+    /// </summary>
+    public readonly ElementApplication ElementApplication;
+
+    /// <summary>
+    /// ElementApplication defaults to None — non-elemental hits do not need to supply it.
+    /// </summary>
+    public DamageInfo(int amount, GameObject source, Vector3 hitPoint, Vector3 hitDirection,
+                      ElementApplication elementApplication = default)
     {
-        Amount       = amount;
-        Source       = source;
-        HitPoint     = hitPoint;
-        HitDirection = hitDirection;
+        Amount             = amount;
+        Source             = source;
+        HitPoint           = hitPoint;
+        HitDirection       = hitDirection;
+        ElementApplication = elementApplication;
     }
 }
