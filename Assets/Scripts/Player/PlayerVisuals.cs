@@ -2,19 +2,14 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Handles the visual appearance of each player capsule.
-/// Local player (the one you control) → grey.
-/// Remote players (other clients) → red.
-///
-/// Uses OnNetworkSpawn so it runs after NGO assigns ownership,
-/// which is required to correctly read IsOwner.
-/// Supports both URP (_BaseColor) and Built-in/Standard (_Color) shaders.
+/// Swaps the player capsule material based on ownership.
+/// The prefab already has host_color (grey) as the default material,
+/// so we only need to swap to client_color (red) for remote players.
 /// </summary>
 [RequireComponent(typeof(MeshRenderer))]
 public class PlayerVisuals : NetworkBehaviour
 {
-    private static readonly Color LocalPlayerColor  = new Color(0.5f, 0.5f, 0.5f); // grey
-    private static readonly Color RemotePlayerColor = new Color(0.85f, 0.1f, 0.1f); // red
+    [SerializeField] private Material clientMaterial; // assigned in prefab — client_color.mat
 
     private MeshRenderer _renderer;
 
@@ -24,20 +19,20 @@ public class PlayerVisuals : NetworkBehaviour
     }
 
     /// <summary>
-    /// Called by NGO after the NetworkObject is fully spawned and ownership is assigned.
-    /// IsOwner = true means this instance is the local player.
-    /// We create a material instance (.material) to avoid changing all players at once.
-    /// We set both _BaseColor (URP) and _Color (Built-in) so it works regardless of render pipeline.
+    /// Called by NGO after ownership is assigned.
+    /// IsOwner = true → local player, keep the default grey material.
+    /// IsOwner = false → remote player, swap to client material (red).
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        Color color = IsOwner ? LocalPlayerColor : RemotePlayerColor;
-
-        // .material creates a per-instance copy automatically — safe to modify
-        Material mat = _renderer.material;
-        mat.SetColor("_BaseColor", color); // URP / Lit shader
-        mat.SetColor("_Color", color);     // Built-in / Standard shader
-
-        Debug.Log($"[PlayerVisuals] Spawned — IsOwner={IsOwner}, color={color}");
+        if (!IsOwner && clientMaterial != null)
+        {
+            _renderer.material = clientMaterial;
+            Debug.Log("[PlayerVisuals] Remote player — applied client color.");
+        }
+        else
+        {
+            Debug.Log("[PlayerVisuals] Local player — keeping host color.");
+        }
     }
 }
