@@ -34,10 +34,17 @@ public class PlayerMovement : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        // If this is NOT our player (e.g. another player's character), make it kinematic.
-        // Kinematic = not driven by physics locally — the server will tell us where it is.
-        if (!IsOwner)
+        // The SERVER (host) must run physics for ALL players — both its own and clients'.
+        //   If the client's Rigidbody were kinematic on the server, MoveServerRpc → ApplyMovement
+        //   would try to set velocity on a kinematic body, which has NO effect.
+        //   The server would then broadcast a stationary position via NetworkTransform.
+        //
+        // Non-server machines (clients) are kinematic for all objects because the server
+        // is authoritative — positions arrive via NetworkTransform, not local physics.
+        if (!IsServer)
             _rb.isKinematic = true;
+
+        Debug.Log($"[PlayerMovement] Spawned — IsOwner:{IsOwner} IsServer:{IsServer} IsHost:{IsHost} Kinematic:{_rb.isKinematic}");
     }
 
     /// <summary>
