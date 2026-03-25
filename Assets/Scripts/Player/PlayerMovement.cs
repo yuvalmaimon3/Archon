@@ -74,10 +74,13 @@ public class PlayerMovement : NetworkBehaviour
         // FixedUpdate runs at a fixed timestep (default 50Hz) — always use this for physics
         if (!CanMove) return;
 
-        ApplyMovement(_inputDir);
+        // Only the server applies physics directly — client Rigidbodies are kinematic.
+        // Calling ApplyMovement on a kinematic body (client-side) would log a warning and do nothing.
+        if (IsServer)
+            ApplyMovement(_inputDir);
 
-        // When in a multiplayer session, tell the server what input we pressed
-        // so it can validate and sync the position to all other clients
+        // Send input to the server so it can move this player for everyone.
+        // The host skips this inside MoveServerRpc (it already moved via ApplyMovement above).
         if (IsSpawned)
             MoveServerRpc(_inputDir);
     }
