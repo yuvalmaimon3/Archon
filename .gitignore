@@ -98,6 +98,9 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
+# Claude Code tooling — local AI assistant skills, not project code
+.claude/skills/
+
 # OS-generated files
 .DS_Store
 .DS_Store?
