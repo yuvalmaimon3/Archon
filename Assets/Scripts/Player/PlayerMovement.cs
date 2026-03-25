@@ -42,14 +42,12 @@ public class PlayerMovement : NetworkBehaviour
 
     /// <summary>
     /// Returns true only when this client is allowed to move the player.
-    /// Two conditions must both be true:
-    ///   1. The game has been started (Start button was pressed)
-    ///   2. This is our own player (not someone else's character)
+    /// We only check ownership — if this player is spawned it means the game is already running.
+    /// IsOwner is true only on the machine that controls this specific player.
+    /// Note: IsGameStarted is NOT checked here because it is only set on the host, not synced
+    /// to clients, so checking it would permanently block client movement.
     /// </summary>
-    private bool CanMove => (GameManager.Instance != null && GameManager.Instance.IsGameStarted)
-                            && (!IsSpawned || IsOwner);
-    // IsSpawned = false means we're not in a network session yet (solo/testing mode)
-    // In that case we skip the ownership check so local testing still works
+    private bool CanMove => IsOwner;
 
     private void Update()
     {
