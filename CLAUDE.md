@@ -1,5 +1,8 @@
 important the project should be clear as possible so i can be involve in the code and on the whole process
 
+# Memory
+At the start of every session, read all files in `.claude/memory/` to restore project context (game design, decisions, feedback from past sessions). When on a new machine, also copy those files into `~/.claude/projects/<project-path>/memory/` so the auto-memory system works locally.
+
 # Code Comments
 - Add comments to help understand the code. add comments for each function class and expalnd what it do, in addition add comments inside function and classes when needed
 - Only explain non-trivial decisions — avoid stating the obvious.
