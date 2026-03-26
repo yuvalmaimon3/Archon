@@ -21,9 +21,10 @@ public class Projectile : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float lifetime = 5f;
 
-    // Set at spawn time via Initialize() — determined by the AttackDefinition of the attacker.
-    // Player attacks target "Enemy"; enemy attacks target "Player".
-    private string _targetTag;
+    // Set at spawn time via Initialize() — do not configure this on the prefab, it will be overwritten.
+    // Visible in the Inspector for runtime debugging only.
+    [Tooltip("Read-only at runtime. Set by the AttackDefinition that spawned this projectile.")]
+    [SerializeField] private string _targetTag;
 
     // ── Runtime state ────────────────────────────────────────────────────────
 
