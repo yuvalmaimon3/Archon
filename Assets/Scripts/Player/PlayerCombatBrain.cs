@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -5,16 +6,17 @@ using UnityEngine;
 /// Auto-fires toward the nearest tagged enemy each cooldown cycle.
 /// Stops attacking automatically when no enemies are present in the scene.
 ///
+/// Extends NetworkBehaviour so IsOwner is available — only the machine that
+/// owns this player runs the attack logic. This prevents both machines from
+/// independently simulating the same player's attacks (desync).
+///
 /// Responsibilities:
-///   - Scan for nearest enemy each frame via Unity tag lookup
+///   - Scan for nearest enemy each frame via Unity tag lookup (owner only)
 ///   - Ask AttackController whether the attack cooldown is ready
 ///   - Route to the correct executor based on AttackType
 ///   - Mark the cooldown after a successful execution
-///
-/// Note: when multiplayer is added, guard Update/TryAttack with IsOwner
-/// (same pattern used in PlayerMovement) so only the local player triggers attacks.
 /// </summary>
-public class PlayerCombatBrain : MonoBehaviour
+public class PlayerCombatBrain : NetworkBehaviour
 {
     [Header("References")]
     [Tooltip("The attack controller that owns the cooldown and AttackDefinition. " +
@@ -45,6 +47,11 @@ public class PlayerCombatBrain : MonoBehaviour
 
     private void Update()
     {
+        // Only the owning machine runs attack logic.
+        // Without this guard both host and client independently fire projectiles
+        // for every player in the scene, causing desynchronized local simulations.
+        if (!IsOwner) return;
+
         // Re-scan each frame so we always aim at the current nearest enemy.
         _currentTarget = FindNearestEnemy();
 
