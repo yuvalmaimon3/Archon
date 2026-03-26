@@ -30,6 +30,14 @@ public class AttackDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float range = 5f;
 
+    [Header("Projectile")]
+    [Tooltip("Prefab spawned when this attack fires. Required when AttackType is Projectile.")]
+    [SerializeField] private Projectile projectilePrefab;
+
+    [Tooltip("Units per second the projectile travels.")]
+    [Min(0f)]
+    [SerializeField] private float projectileSpeed = 10f;
+
     [Header("Element")]
     [Tooltip("Element applied to the target on hit. None = non-elemental attack.")]
     [SerializeField] private ElementType elementType = ElementType.None;
@@ -54,6 +62,12 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Maximum valid distance from attacker to target.</summary>
     public float Range => range;
+
+    /// <summary>Prefab spawned for projectile attacks. Null for non-projectile attacks.</summary>
+    public Projectile ProjectilePrefab => projectilePrefab;
+
+    /// <summary>Travel speed of the projectile in units per second.</summary>
+    public float ProjectileSpeed => projectileSpeed;
 
     /// <summary>Element applied to the target on hit.</summary>
     public ElementType ElementType => elementType;
