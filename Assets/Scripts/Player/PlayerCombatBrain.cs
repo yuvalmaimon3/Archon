@@ -2,15 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Decides when the player attacks and dispatches to the correct executor.
-/// Owns the "when" — not the "how": damage logic lives in the executors and Health.
+/// Auto-fires toward the nearest tagged enemy each cooldown cycle.
+/// Stops attacking automatically when no enemies are present in the scene.
 ///
 /// Responsibilities:
-///   - Read player attack input
-///   - Ask AttackController whether the attack is ready
+///   - Scan for nearest enemy each frame via Unity tag lookup
+///   - Ask AttackController whether the attack cooldown is ready
 ///   - Route to the correct executor based on AttackType
 ///   - Mark the cooldown after a successful execution
 ///
-/// Note: when multiplayer is added, wrap Update/TryAttack with an IsOwner guard
+/// Note: when multiplayer is added, guard Update/TryAttack with IsOwner
 /// (same pattern used in PlayerMovement) so only the local player triggers attacks.
 /// </summary>
 public class PlayerCombatBrain : MonoBehaviour
@@ -20,15 +21,21 @@ public class PlayerCombatBrain : MonoBehaviour
              "Auto-resolved from this GameObject if left empty.")]
     [SerializeField] private AttackController attackController;
 
-    [Header("Input")]
-    [Tooltip("Key that triggers an attack attempt. Swap for a mobile/UI button call to TryAttack() later.")]
-    [SerializeField] private KeyCode attackKey = KeyCode.Space;
+    [Header("Targeting")]
+    [Tooltip("Unity tag that marks enemy GameObjects. Must match the tag applied to enemy prefabs.")]
+    [SerializeField] private string enemyTag = "Enemy";
+
+    // The nearest live enemy this frame — null when no enemies exist.
+    private Transform _currentTarget;
+
+    // Track the previous target to avoid spamming the log every frame.
+    private Transform _lastLoggedTarget;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
-        // Auto-resolve so the component works when the reference is not set manually
+        // Auto-resolve so the component works when the reference is not set manually.
         if (attackController == null)
             attackController = GetComponent<AttackController>();
 
@@ -38,27 +45,30 @@ public class PlayerCombatBrain : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(attackKey))
+        // Re-scan each frame so we always aim at the current nearest enemy.
+        _currentTarget = FindNearestEnemy();
+
+        if (_currentTarget != null)
             TryAttack();
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Attempts to execute the current attack.
-    /// Can be called from external sources (auto-fire timer, UI button) in addition to keyboard input.
+    /// Attempts to fire the current attack toward the active target.
+    /// Can be called externally (UI buttons, test scripts).
+    /// Does nothing if the cooldown is not ready or no target is set.
     /// </summary>
     public void TryAttack()
     {
-        if (attackController == null) return;
+        if (attackController == null || _currentTarget == null) return;
         if (!attackController.CanUseAttack()) return;
 
         AttackDefinition def = attackController.AttackDefinition;
-
         bool success = ExecuteAttack(def);
 
-        // Only start the cooldown when the attack actually fired —
-        // prevents a missing prefab from wasting the player's turn
+        // Only spend the cooldown when the attack actually fired —
+        // prevents a missing prefab from wasting the player's cooldown.
         if (success)
             attackController.MarkAttackUsed();
     }
@@ -74,7 +84,7 @@ public class PlayerCombatBrain : MonoBehaviour
         switch (def.AttackType)
         {
             case AttackType.Projectile:
-                // ProjectileAttackExecutor returns the spawned Projectile, or null on failure
+                // ProjectileAttackExecutor returns the spawned Projectile, or null on failure.
                 var projectile = ProjectileAttackExecutor.Execute(transform, GetAttackDirection(), def);
                 return projectile != null;
 
@@ -83,10 +93,8 @@ public class PlayerCombatBrain : MonoBehaviour
                 return true;
 
             case AttackType.Contact:
-                // Contact damage is applied automatically and continuously by ContactDamageDealer
-                // on the same GameObject — the brain does not need to trigger it manually
-                Debug.LogWarning($"[PlayerCombatBrain] AttackType.Contact is managed by " +
-                                 $"ContactDamageDealer, not triggered by the brain.");
+                // ContactDamageDealer handles this automatically — brain must not trigger it.
+                Debug.LogWarning("[PlayerCombatBrain] AttackType.Contact is driven by ContactDamageDealer, not the brain.");
                 return false;
 
             default:
@@ -96,12 +104,55 @@ public class PlayerCombatBrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Returns the world-space direction this player's attacks travel toward.
-    /// Currently uses transform.forward — replace this method's body with aim logic
-    /// (e.g. direction to nearest enemy) without changing any other code.
+    /// Returns the normalized world-space direction from the player toward the current target.
+    /// Y component is zeroed to keep projectiles flying on the horizontal plane.
+    /// Falls back to transform.forward when no target is set.
     /// </summary>
     private Vector3 GetAttackDirection()
     {
-        return transform.forward;
+        if (_currentTarget == null)
+            return transform.forward;
+
+        Vector3 dir = _currentTarget.position - transform.position;
+        dir.y = 0f; // Stay on the horizontal plane — avoids lobbing projectiles upward.
+        return dir == Vector3.zero ? transform.forward : dir.normalized;
+    }
+
+    /// <summary>
+    /// Scans all GameObjects tagged with enemyTag and returns the Transform of the closest one.
+    /// Returns null when no enemies are present in the scene.
+    ///
+    /// Note: FindGameObjectsWithTag allocates each call — acceptable for a test scene.
+    /// Production builds should replace this with a centrally-managed enemy registry.
+    /// </summary>
+    private Transform FindNearestEnemy()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag(enemyTag);
+        if (enemies.Length == 0) return null;
+
+        Transform nearest = null;
+        float nearestSqDist = float.MaxValue;
+
+        foreach (var enemy in enemies)
+        {
+            float sqDist = (enemy.transform.position - transform.position).sqrMagnitude;
+            if (sqDist < nearestSqDist)
+            {
+                nearestSqDist = sqDist;
+                nearest = enemy.transform;
+            }
+        }
+
+        // Only log when the target changes — avoids console spam every frame.
+        if (nearest != _lastLoggedTarget)
+        {
+            _lastLoggedTarget = nearest;
+            if (nearest != null)
+                Debug.Log($"[PlayerCombatBrain] New target: '{nearest.name}' at {Mathf.Sqrt(nearestSqDist):F1}m");
+            else
+                Debug.Log("[PlayerCombatBrain] No targets — attack stopped.");
+        }
+
+        return nearest;
     }
 }

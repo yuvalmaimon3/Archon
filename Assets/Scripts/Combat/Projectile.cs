@@ -1,21 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// Moves in a straight line and deals damage to the first valid IDamageable it hits.
-/// Generic — works for both player and enemy projectiles.
+/// Moves in a straight line and destroys itself on the first collision with any object.
+/// Deals damage to the hit target only if it implements IDamageable.
 ///
 /// Setup requirements on the prefab:
 ///   - A Collider set to Is Trigger
 ///   - A Rigidbody (Projectile forces it kinematic in Awake)
 ///
 /// Lifetime and stats are set via Initialize() at spawn time.
+/// The projectile auto-destructs after <see cref="lifetime"/> seconds if it hits nothing.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
 public class Projectile : MonoBehaviour
 {
     [Header("Projectile")]
-    [Tooltip("Seconds before the projectile destroys itself if it hits nothing.")]
+    [Tooltip("Seconds before the projectile self-destructs if it hits nothing.")]
     [Min(0.1f)]
     [SerializeField] private float lifetime = 5f;
 
@@ -29,7 +30,7 @@ public class Projectile : MonoBehaviour
 
     private bool _isInitialized;
 
-    // Prevents double-damage if two trigger overlaps fire before Destroy completes
+    // Prevents double-processing if two triggers fire before Destroy completes.
     private bool _hasHit;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
@@ -38,16 +39,16 @@ public class Projectile : MonoBehaviour
     {
         // Kinematic: we move the projectile manually; physics must not interfere.
         // OnTriggerEnter still fires correctly with a kinematic Rigidbody.
-        var rb           = GetComponent<Rigidbody>();
-        rb.isKinematic   = true;
-        rb.useGravity    = false;
+        var rb         = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity  = false;
     }
 
     private void Update()
     {
         if (!_isInitialized) return;
 
-        // Straight-line movement in world space
+        // Straight-line movement in world space.
         transform.Translate(_direction * _speed * Time.deltaTime, Space.World);
     }
 
@@ -57,7 +58,7 @@ public class Projectile : MonoBehaviour
     /// Sets all runtime data and activates the projectile.
     /// Must be called once immediately after spawning.
     /// </summary>
-    /// <param name="damage">Damage to deal on hit.</param>
+    /// <param name="damage">Damage to deal on hit (only applied to IDamageable targets).</param>
     /// <param name="source">The GameObject that fired this projectile — ignored on collision.</param>
     /// <param name="direction">World-space travel direction (will be normalized).</param>
     /// <param name="speed">Units per second.</param>
@@ -72,11 +73,11 @@ public class Projectile : MonoBehaviour
         _elementApplication = elementApplication;
         _isInitialized      = true;
 
-        // Schedule lifetime destruction — no countdown needed in Update
+        // Schedule self-destruction — no countdown needed in Update.
         Destroy(gameObject, lifetime);
 
-        Debug.Log($"[Projectile] Initialized — damage: {damage}, speed: {speed}, " +
-                  $"element: {elementApplication.Element}, lifetime: {lifetime}s");
+        Debug.Log($"[Projectile] Initialized — damage:{damage}, speed:{speed}, " +
+                  $"element:{elementApplication.Element}, lifetime:{lifetime}s");
     }
 
     // ── Collision ────────────────────────────────────────────────────────────
@@ -85,33 +86,39 @@ public class Projectile : MonoBehaviour
     {
         if (!_isInitialized || _hasHit) return;
 
-        // Ignore the source — also handles multi-collider objects where the
-        // hitbox is a child of the source (e.g. player body parts)
+        // Ignore the source and its children (e.g. player body-part colliders).
         if (_source != null &&
             (other.gameObject == _source || other.transform.IsChildOf(_source.transform)))
             return;
 
-        // Only damage objects that implement IDamageable — no tag checks
-        if (!other.TryGetComponent<IDamageable>(out var damageable)) return;
-
         _hasHit = true;
 
-        // ClosestPoint gives the surface contact position for accurate VFX and knockback
-        Vector3 hitPoint = other.ClosestPoint(transform.position);
+        // Deal damage only if the target implements IDamageable.
+        if (other.TryGetComponent<IDamageable>(out var damageable))
+        {
+            // ClosestPoint gives the surface contact position for accurate VFX and knockback.
+            Vector3 hitPoint = other.ClosestPoint(transform.position);
 
-        var damageInfo = new DamageInfo(
-            amount:             _damage,
-            source:             _source,
-            hitPoint:           hitPoint,
-            hitDirection:       _direction,
-            elementApplication: _elementApplication
-        );
+            var damageInfo = new DamageInfo(
+                amount:             _damage,
+                source:             _source,
+                hitPoint:           hitPoint,
+                hitDirection:       _direction,
+                elementApplication: _elementApplication
+            );
 
-        damageable.TakeDamage(damageInfo);
+            damageable.TakeDamage(damageInfo);
 
-        Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
-                  $"(element: {_elementApplication.Element}).");
+            Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
+                      $"(element:{_elementApplication.Element}).");
+        }
+        else
+        {
+            // Hit a non-damageable object (wall, floor, etc.) — destroy without dealing damage.
+            Debug.Log($"[Projectile] Hit '{other.gameObject.name}' — not IDamageable, no damage.");
+        }
 
+        // Destroy on any hit regardless of whether damage was applied.
         Destroy(gameObject);
     }
 }
