@@ -43,6 +43,11 @@ public class AttackDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float meleeRadius = 1.5f;
 
+    [Header("Contact")]
+    [Tooltip("Seconds between damage ticks while a target stays in contact. Required when AttackType is Contact.")]
+    [Min(0.05f)]
+    [SerializeField] private float contactTickInterval = 0.5f;
+
     [Header("Element")]
     [Tooltip("Element applied to the target on hit. None = non-elemental attack.")]
     [SerializeField] private ElementType elementType = ElementType.None;
@@ -76,6 +81,9 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Radius of the overlap sphere used to detect melee targets.</summary>
     public float MeleeRadius => meleeRadius;
+
+    /// <summary>Seconds between damage ticks for contact attacks.</summary>
+    public float ContactTickInterval => contactTickInterval;
 
     /// <summary>Element applied to the target on hit.</summary>
     public ElementType ElementType => elementType;
