@@ -10,10 +10,16 @@ using UnityEngine;
 /// owns this player runs the attack logic. This prevents both machines from
 /// independently simulating the same player's attacks (desync).
 ///
+/// For projectile attacks, the owner sends a SpawnProjectileServerRpc to the server.
+/// The server instantiates and spawns the NetworkObject, then calls InitializeClientRpc
+/// on the projectile so all clients receive the trajectory data and simulate it locally.
+/// This ensures all players see all projectiles — one source of truth.
+///
 /// Responsibilities:
 ///   - Scan for nearest enemy each frame via Unity tag lookup (owner only)
 ///   - Ask AttackController whether the attack cooldown is ready
 ///   - Route to the correct executor based on AttackType
+///   - For projectiles: request server-side networked spawn via ServerRpc
 ///   - Mark the cooldown after a successful execution
 /// </summary>
 public class PlayerCombatBrain : NetworkBehaviour
@@ -91,9 +97,12 @@ public class PlayerCombatBrain : NetworkBehaviour
         switch (def.AttackType)
         {
             case AttackType.Projectile:
-                // ProjectileAttackExecutor returns the spawned Projectile, or null on failure.
-                var projectile = ProjectileAttackExecutor.Execute(transform, GetAttackDirection(), def);
-                return projectile != null;
+                // Pre-validate on the owner before sending the RPC — avoids a server round-trip
+                // for configuration errors like a missing prefab.
+                Vector3 dir = GetAttackDirection();
+                if (def.ProjectilePrefab == null || dir == Vector3.zero) return false;
+                SpawnProjectileServerRpc(dir);
+                return true;
 
             case AttackType.Melee:
                 MeleeAttackExecutor.Execute(transform, def);
@@ -108,6 +117,64 @@ public class PlayerCombatBrain : NetworkBehaviour
                 Debug.LogWarning($"[PlayerCombatBrain] Unhandled AttackType: {def.AttackType}");
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Sends a spawn request to the server.
+    /// The server instantiates the projectile prefab, spawns it as a NetworkObject (replicating
+    /// it to all clients), then immediately calls InitializeClientRpc so every client sets the
+    /// same direction and speed and starts simulating movement locally.
+    ///
+    /// Called only from the owner (IsOwner guard in Update).
+    /// RequireOwnership = true (default) enforces this on the server side as well.
+    /// </summary>
+    [ServerRpc]
+    private void SpawnProjectileServerRpc(Vector3 direction)
+    {
+        if (attackController == null) return;
+        AttackDefinition def = attackController.AttackDefinition;
+
+        if (def == null)
+        {
+            Debug.LogError("[PlayerCombatBrain] SpawnProjectileServerRpc: AttackDefinition is null on server.");
+            return;
+        }
+
+        if (def.ProjectilePrefab == null)
+        {
+            Debug.LogError($"[PlayerCombatBrain] '{def.AttackId}' has no ProjectilePrefab assigned.");
+            return;
+        }
+
+        if (direction == Vector3.zero)
+        {
+            Debug.LogWarning("[PlayerCombatBrain] SpawnProjectileServerRpc: direction is zero — skipping spawn.");
+            return;
+        }
+
+        // Server instantiates the projectile and spawns it as a NetworkObject.
+        // NGO replicates the spawn to all connected clients automatically.
+        Projectile projectile = Instantiate(
+            def.ProjectilePrefab,
+            transform.position,
+            Quaternion.LookRotation(direction)
+        );
+
+        projectile.NetworkObject.Spawn();
+
+        // Send trajectory and stats to all clients so each can simulate locally.
+        // The deterministic straight-line movement guarantees identical results everywhere.
+        projectile.InitializeClientRpc(
+            damage:          def.Damage,
+            sourceRef:       NetworkObject,
+            direction:       direction,
+            speed:           def.ProjectileSpeed,
+            elementType:     def.ElementType,
+            elementStrength: def.ElementStrength,
+            targetTag:       def.ProjectileTargetTag
+        );
+
+        Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' (networked).");
     }
 
     /// <summary>
