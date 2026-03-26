@@ -73,7 +73,8 @@ public static class ProjectileAttackExecutor
             source:             origin.gameObject,
             direction:          direction,
             speed:              attackDefinition.ProjectileSpeed,
-            elementApplication: elementApplication
+            elementApplication: elementApplication,
+            targetTag:          attackDefinition.ProjectileTargetTag
         );
 
         Debug.Log($"[ProjectileAttackExecutor] '{origin.name}' fired '{attackDefinition.AttackId}'.");

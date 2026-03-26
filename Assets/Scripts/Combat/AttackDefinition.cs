@@ -38,6 +38,9 @@ public class AttackDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float projectileSpeed = 10f;
 
+    [Tooltip("Tag of GameObjects this projectile can hit. Set explicitly per attack: 'Enemy' for player attacks, 'Player' for enemy attacks.")]
+    [SerializeField] private string projectileTargetTag;
+
     [Header("Melee")]
     [Tooltip("Radius of the overlap sphere used to detect melee targets. Required when AttackType is Melee.")]
     [Min(0f)]
@@ -78,6 +81,9 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Travel speed of the projectile in units per second.</summary>
     public float ProjectileSpeed => projectileSpeed;
+
+    /// <summary>Tag of GameObjects this projectile can hit. Player attacks: "Enemy"; enemy attacks: "Player".</summary>
+    public string ProjectileTargetTag => projectileTargetTag;
 
     /// <summary>Radius of the overlap sphere used to detect melee targets.</summary>
     public float MeleeRadius => meleeRadius;

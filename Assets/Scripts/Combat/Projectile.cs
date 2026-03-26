@@ -21,8 +21,9 @@ public class Projectile : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float lifetime = 5f;
 
-    [Tooltip("Only objects with this tag will be hit. Everything else is ignored and passed through.")]
-    [SerializeField] private string targetTag = "Enemy";
+    // Set at spawn time via Initialize() — determined by the AttackDefinition of the attacker.
+    // Player attacks target "Enemy"; enemy attacks target "Player".
+    private string _targetTag;
 
     // ── Runtime state ────────────────────────────────────────────────────────
 
@@ -67,14 +68,16 @@ public class Projectile : MonoBehaviour
     /// <param name="direction">World-space travel direction (will be normalized).</param>
     /// <param name="speed">Units per second.</param>
     /// <param name="elementApplication">Elemental data forwarded to the target's ElementStatusController.</param>
+    /// <param name="targetTag">Only objects with this tag will be hit. Player attacks: "Enemy"; enemy attacks: "Player".</param>
     public void Initialize(int damage, GameObject source, Vector3 direction, float speed,
-                           ElementApplication elementApplication)
+                           ElementApplication elementApplication, string targetTag)
     {
         _damage             = damage;
         _source             = source;
         _direction          = direction.normalized;
         _speed              = speed;
         _elementApplication = elementApplication;
+        _targetTag          = targetTag;
         _isInitialized      = true;
 
         // Schedule self-destruction — no countdown needed in Update.
@@ -96,7 +99,7 @@ public class Projectile : MonoBehaviour
             return;
 
         // Pass through anything that is not the target tag (walls, floor, players, etc.).
-        if (!other.CompareTag(targetTag)) return;
+        if (!other.CompareTag(_targetTag)) return;
 
         _hasHit = true;
 
@@ -122,7 +125,7 @@ public class Projectile : MonoBehaviour
         else
         {
             // Tagged as target but no IDamageable — log for visibility during testing.
-            Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{targetTag}') " +
+            Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{_targetTag}') " +
                              $"but it has no IDamageable component.");
         }
 

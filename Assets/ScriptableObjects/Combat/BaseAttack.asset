@@ -19,6 +19,7 @@ MonoBehaviour:
   range: 100
   projectilePrefab: {fileID: 6358910555131766176, guid: 8a222dce2b0c3be4abcb10a85c708943, type: 3}
   projectileSpeed: 10
+  projectileTargetTag: Enemy
   meleeRadius: 1.5
   contactTickInterval: 0.5
   elementType: 0
