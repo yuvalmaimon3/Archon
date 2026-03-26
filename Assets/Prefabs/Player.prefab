@@ -17,6 +17,8 @@ GameObject:
   - component: {fileID: 8775769810914514076}
   - component: {fileID: 3690402339114804943}
   - component: {fileID: 1945756777158595512}
+  - component: {fileID: 5287284379114541691}
+  - component: {fileID: 5320271293685463851}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -243,3 +245,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   clientMaterial: {fileID: 2100000, guid: 51076ce6251a52f42ad7473079efaecf, type: 2}
+--- !u!114 &5287284379114541691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876438885368318691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56005875f843a814e9048bf3c91059d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackDefinition: {fileID: 11400000, guid: 63f90907d74b8334fb5cbbaf7548bee9, type: 2}
+--- !u!114 &5320271293685463851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876438885368318691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a6e5e5901efb004e9bf7653d37591d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackController: {fileID: 5287284379114541691}
+  enemyTag: Enemy
