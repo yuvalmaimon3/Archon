@@ -41,8 +41,12 @@ public class Projectile : NetworkBehaviour
     private Vector3            _direction;
     private float              _speed;
     private ElementApplication _elementApplication;
+    private ProjectileShape    _shape;
 
     private bool _isInitialized;
+
+    // Cached optional VFX controller for element visuals and hit effects
+    private ProjectileVFXController _vfxController;
 
     // Prevents double-processing if two triggers fire before Despawn completes.
     private bool _hasHit;
@@ -60,6 +64,9 @@ public class Projectile : NetworkBehaviour
         var rb         = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity  = false;
+
+        // Cache optional VFX controller
+        TryGetComponent(out _vfxController);
     }
 
     private void Update()
@@ -94,7 +101,8 @@ public class Projectile : NetworkBehaviour
     public void InitializeClientRpc(int damage, NetworkObjectReference sourceRef,
                                      Vector3 direction, float speed,
                                      ElementType elementType, float elementStrength,
-                                     string targetTag)
+                                     string targetTag,
+                                     ProjectileShape shape = ProjectileShape.Orb)
     {
         _isNetworked        = true;
         _source             = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
@@ -103,10 +111,15 @@ public class Projectile : NetworkBehaviour
         _speed              = speed;
         _elementApplication = new ElementApplication(elementType, elementStrength, _source);
         _targetTag          = targetTag;
+        _shape              = shape;
         _isInitialized      = true;
 
+        // Build element-colored projectile VFX on every client
+        if (_vfxController != null)
+            _vfxController.SetVisuals(elementType, shape);
+
         Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementType}, lifetime:{lifetime}s");
+                  $"element:{elementType}, shape:{shape}, lifetime:{lifetime}s");
     }
 
     // ── Standalone initialization ─────────────────────────────────────────────
@@ -117,7 +130,8 @@ public class Projectile : NetworkBehaviour
     /// Manages lifetime locally via Destroy().
     /// </summary>
     public void Initialize(int damage, GameObject source, Vector3 direction, float speed,
-                           ElementApplication elementApplication, string targetTag)
+                           ElementApplication elementApplication, string targetTag,
+                           ProjectileShape shape = ProjectileShape.Orb)
     {
         _isNetworked        = false;
         _damage             = damage;
@@ -126,13 +140,18 @@ public class Projectile : NetworkBehaviour
         _speed              = speed;
         _elementApplication = elementApplication;
         _targetTag          = targetTag;
+        _shape              = shape;
         _isInitialized      = true;
+
+        // Build element-colored projectile VFX
+        if (_vfxController != null)
+            _vfxController.SetVisuals(elementApplication.Element, shape);
 
         // Standalone mode: manage lifetime with a local Destroy.
         Destroy(gameObject, lifetime);
 
         Debug.Log($"[Projectile] Initialized (standalone) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementApplication.Element}, lifetime:{lifetime}s");
+                  $"element:{elementApplication.Element}, shape:{shape}, lifetime:{lifetime}s");
     }
 
     // ── Collision ────────────────────────────────────────────────────────────
@@ -155,10 +174,14 @@ public class Projectile : NetworkBehaviour
 
         _hasHit = true;
 
+        // Spawn hit impact VFX at the impact point (cosmetic, all clients see it)
+        Vector3 hitPoint = other.ClosestPoint(transform.position);
+        if (_vfxController != null)
+            _vfxController.PlayHitEffect(hitPoint);
+
         // Deal damage if the target implements IDamageable.
         if (other.TryGetComponent<IDamageable>(out var damageable))
         {
-            Vector3 hitPoint = other.ClosestPoint(transform.position);
             var damageInfo = new DamageInfo(
                 amount:             _damage,
                 source:             _source,

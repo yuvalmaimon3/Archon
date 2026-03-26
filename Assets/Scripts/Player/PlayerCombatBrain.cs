@@ -39,6 +39,9 @@ public class PlayerCombatBrain : NetworkBehaviour
     // Track the previous target to avoid spamming the log every frame.
     private Transform _lastLoggedTarget;
 
+    // Cached reference to random element/shape setup. Null if not attached — falls back to AttackDefinition.
+    private PlayerElementSetup _elementSetup;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -49,6 +52,9 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         if (attackController == null)
             Debug.LogError($"[PlayerCombatBrain] {gameObject.name} has no AttackController assigned or found.", this);
+
+        // Cache optional element setup for random element/shape override
+        TryGetComponent(out _elementSetup);
     }
 
     private void Update()
@@ -152,6 +158,17 @@ public class PlayerCombatBrain : NetworkBehaviour
             return;
         }
 
+        // Use player's randomly assigned element/shape if available, else fall back to definition
+        ElementType elementToUse = def.ElementType;
+        float strengthToUse = def.ElementStrength;
+        ProjectileShape shapeToUse = ProjectileShape.Orb;
+
+        if (_elementSetup != null && _elementSetup.AssignedElement != ElementType.None)
+        {
+            elementToUse = _elementSetup.AssignedElement;
+            shapeToUse   = _elementSetup.AssignedShape;
+        }
+
         // Server instantiates the projectile and spawns it as a NetworkObject.
         // NGO replicates the spawn to all connected clients automatically.
         Projectile projectile = Instantiate(
@@ -162,19 +179,20 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         projectile.NetworkObject.Spawn();
 
-        // Send trajectory and stats to all clients so each can simulate locally.
-        // The deterministic straight-line movement guarantees identical results everywhere.
+        // Send trajectory, stats, element, and shape to all clients.
         projectile.InitializeClientRpc(
             damage:          def.Damage,
             sourceRef:       NetworkObject,
             direction:       direction,
             speed:           def.ProjectileSpeed,
-            elementType:     def.ElementType,
-            elementStrength: def.ElementStrength,
-            targetTag:       def.ProjectileTargetTag
+            elementType:     elementToUse,
+            elementStrength: strengthToUse,
+            targetTag:       def.ProjectileTargetTag,
+            shape:           shapeToUse
         );
 
-        Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' (networked).");
+        Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' " +
+                  $"(element:{elementToUse}, shape:{shapeToUse}).");
     }
 
     /// <summary>
