@@ -2,8 +2,8 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Moves in a straight line and reacts only to objects with a matching target tag.
-/// Passes through everything else (walls, floor, players, etc.).
+/// Moves in a straight line, deals damage to objects with a matching target tag,
+/// and destroys itself on any solid surface hit (walls, floors, obstacles, etc.).
 /// Deals damage only if the tagged target also implements IDamageable.
 ///
 /// ── Networked mode (multiplayer) ──
@@ -150,31 +150,36 @@ public class Projectile : NetworkBehaviour
             (other.gameObject == _source || other.transform.IsChildOf(_source.transform)))
             return;
 
-        // Pass through anything that is not the target tag (walls, floor, other players, etc.).
-        if (!other.CompareTag(_targetTag)) return;
-
         _hasHit = true;
 
-        // Deal damage if the target implements IDamageable.
-        if (other.TryGetComponent<IDamageable>(out var damageable))
+        // Deal damage only when the hit object carries the expected target tag.
+        if (other.CompareTag(_targetTag))
         {
-            Vector3 hitPoint = other.ClosestPoint(transform.position);
-            var damageInfo = new DamageInfo(
-                amount:             _damage,
-                source:             _source,
-                hitPoint:           hitPoint,
-                hitDirection:       _direction,
-                elementApplication: _elementApplication
-            );
-            damageable.TakeDamage(damageInfo);
-            Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
-                      $"(element:{_elementApplication.Element}).");
+            if (other.TryGetComponent<IDamageable>(out var damageable))
+            {
+                Vector3 hitPoint = other.ClosestPoint(transform.position);
+                var damageInfo = new DamageInfo(
+                    amount:             _damage,
+                    source:             _source,
+                    hitPoint:           hitPoint,
+                    hitDirection:       _direction,
+                    elementApplication: _elementApplication
+                );
+                damageable.TakeDamage(damageInfo);
+                Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
+                          $"(element:{_elementApplication.Element}).");
+            }
+            else
+            {
+                // Tagged as target but no IDamageable — log so testers can catch missing components.
+                Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{_targetTag}') " +
+                                 $"but it has no IDamageable component.");
+            }
         }
         else
         {
-            // Tagged as target but no IDamageable — log so testers can catch missing components.
-            Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{_targetTag}') " +
-                             $"but it has no IDamageable component.");
+            // Hit a hard surface (wall, floor, obstacle) — destroy without dealing damage.
+            Debug.Log($"[Projectile] Hit solid object '{other.gameObject.name}' (tag:'{other.tag}') — destroyed.");
         }
 
         DestroyProjectile();
