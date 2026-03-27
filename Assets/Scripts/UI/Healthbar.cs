@@ -7,8 +7,11 @@ using UnityEngine.UI;
 /// Billboard behavior: rotates each frame to face the local camera, so the bar always
 /// reads correctly regardless of the player's rotation or position.
 ///
-/// Auto-discovers NetworkHealthSync in its parent hierarchy and subscribes to health
-/// change events — no manual wiring required as long as the parent has the component.
+/// Auto-discovers a health source in the parent hierarchy:
+///   1. NetworkHealthSync — used for networked entities (players in multiplayer).
+///   2. Health — used as a fallback for non-networked entities (enemies, destructibles).
+///
+/// No manual wiring required as long as the parent has one of the two components.
 ///
 /// Visual setup required on the prefab (HealthbarCanvas):
 ///   - Canvas in World Space render mode
@@ -32,7 +35,11 @@ public class Healthbar : MonoBehaviour
     private Camera _cam;
 
     // Found in parent hierarchy on Start — null if parent has no NetworkHealthSync.
+    // Used for networked entities (players).
     private NetworkHealthSync _healthSync;
+
+    // Fallback for non-networked entities (enemies). Null if _healthSync is used.
+    private Health _health;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -40,21 +47,31 @@ public class Healthbar : MonoBehaviour
     {
         _cam = Camera.main;
 
-        // Look up the sync component in the player (or any entity) hierarchy.
+        // Priority 1: NetworkHealthSync — used by networked entities (players in multiplayer).
         _healthSync = GetComponentInParent<NetworkHealthSync>();
-        if (_healthSync == null)
+        if (_healthSync != null)
         {
-            Debug.LogWarning($"[Healthbar] No NetworkHealthSync found above '{gameObject.name}'. " +
-                             "Health bar will not update automatically.", this);
+            _healthSync.OnHealthChanged += OnHealthChanged;
+
+            // If the component was already spawned before Start ran, pull the current value now.
+            if (_healthSync.IsSpawned)
+                UpdateHealthBar(_healthSync.MaxHealth, _healthSync.CurrentHealth);
             return;
         }
 
-        _healthSync.OnHealthChanged += OnHealthChanged;
+        // Priority 2: Plain Health — used by non-networked entities (enemies, destructibles).
+        _health = GetComponentInParent<Health>();
+        if (_health != null)
+        {
+            _health.OnDamaged += OnHealthChanged;
 
-        // If the component was already spawned before Start ran (e.g. a player that exists
-        // in the scene from the start), pull the current value right now.
-        if (_healthSync.IsSpawned)
-            UpdateHealthBar(_healthSync.MaxHealth, _healthSync.CurrentHealth);
+            // Initialize the bar immediately to full health.
+            UpdateHealthBar(_health.MaxHealth, _health.CurrentHealth);
+            return;
+        }
+
+        Debug.LogWarning($"[Healthbar] No NetworkHealthSync or Health found above '{gameObject.name}'. " +
+                         "Health bar will not update automatically.", this);
     }
 
     private void OnDestroy()
@@ -62,6 +79,9 @@ public class Healthbar : MonoBehaviour
         // Unsubscribe to prevent callbacks after this object is destroyed.
         if (_healthSync != null)
             _healthSync.OnHealthChanged -= OnHealthChanged;
+
+        if (_health != null)
+            _health.OnDamaged -= OnHealthChanged;
     }
 
     private void Update()
