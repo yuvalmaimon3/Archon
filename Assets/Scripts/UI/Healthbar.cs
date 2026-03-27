@@ -2,44 +2,47 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// World-space health bar that smoothly drains toward the target fill amount.
+/// World-space health bar that smoothly drains and changes color based on current HP.
 ///
-/// Billboard behavior: rotates each frame to face the local camera, so the bar always
-/// reads correctly regardless of the player's rotation or position.
+/// Billboard: rotates every frame to face the local camera.
 ///
-/// Auto-discovers a health source in the parent hierarchy:
-///   1. NetworkHealthSync — used for networked entities (players in multiplayer).
-///   2. Health — used as a fallback for non-networked entities (enemies, destructibles).
+/// Health source (auto-discovered from the parent hierarchy):
+///   1. NetworkHealthSync — networked entities (players). Event-driven, synced from server.
+///   2. Health            — non-networked entities (enemies). OnDamaged event + poll fallback.
 ///
-/// No manual wiring required as long as the parent has one of the two components.
+/// IMPORTANT — fill update is intentionally placed BEFORE the camera null-check.
+/// The camera is only needed for billboard rotation. A missing camera must never
+/// block the health bar drain animation.
 ///
-/// Visual setup required on the prefab (HealthbarCanvas):
-///   - Canvas in World Space render mode
-///   - _healthbarSprite: an Image set to Type = Filled, FillMethod = Horizontal, FillOrigin = Left
+/// Color gradient: green (full) → yellow (50 %) → red (critical / empty).
 /// </summary>
 public class Healthbar : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("The fill Image. Must have Image.Type = Filled and FillMethod = Horizontal.")]
-    [SerializeField] private Image _healthbarSprite;
+    [Tooltip("The fill Image. Must be Type=Filled, FillMethod=Horizontal, FillOrigin=Left.")]
+    [SerializeField] private Image _fillImage;
 
     [Header("Settings")]
-    [Tooltip("How fast the bar fill moves toward the target value (fill units per second). " +
-             "Higher = faster drain animation.")]
-    [SerializeField] private float _reduceSpeed = 2f;
+    [Tooltip("Drain speed in fill-units per second. 2 = full-to-empty in 0.5 s.")]
+    [SerializeField] private float _drainSpeed = 2f;
 
-    // Target fill [0..1] — written by UpdateHealthBar, smoothly approached in Update.
+    // ── Color gradient ───────────────────────────────────────────────────────
+
+    private static readonly Color _colorFull     = new Color(0.18f, 0.82f, 0.18f); // green
+    private static readonly Color _colorHalf     = new Color(1.00f, 0.80f, 0.00f); // yellow
+    private static readonly Color _colorCritical = new Color(0.90f, 0.10f, 0.10f); // red
+
+    // ── Private state ────────────────────────────────────────────────────────
+
+    // Target fill ratio [0..1]. Set by damage events; fillAmount animates toward it.
     private float _target = 1f;
 
-    // Local machine's main camera — used for the billboard rotation.
+    // Billboard camera — only needed for rotation, not for fill updates.
     private Camera _cam;
 
-    // Found in parent hierarchy on Start — null if parent has no NetworkHealthSync.
-    // Used for networked entities (players).
-    private NetworkHealthSync _healthSync;
-
-    // Fallback for non-networked entities (enemies). Null if _healthSync is used.
-    private Health _health;
+    // Health sources — one will be non-null depending on entity type.
+    private NetworkHealthSync _healthSync; // players (networked)
+    private Health             _health;    // enemies (non-networked)
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -47,77 +50,86 @@ public class Healthbar : MonoBehaviour
     {
         _cam = Camera.main;
 
-        // Priority 1: NetworkHealthSync — used by networked entities (players in multiplayer).
+        if (_fillImage == null)
+        {
+            Debug.LogError($"[Healthbar] '_fillImage' not assigned on '{gameObject.name}'. " +
+                           "Assign the Fill Image in the Inspector.", this);
+            return;
+        }
+
+        // Priority 1 — NetworkHealthSync (players).
         _healthSync = GetComponentInParent<NetworkHealthSync>();
         if (_healthSync != null)
         {
             _healthSync.OnHealthChanged += OnHealthChanged;
-
-            // If the component was already spawned before Start ran, pull the current value now.
             if (_healthSync.IsSpawned)
-                UpdateHealthBar(_healthSync.MaxHealth, _healthSync.CurrentHealth);
+                SnapFill(_healthSync.MaxHealth, _healthSync.CurrentHealth);
+            Debug.Log($"[Healthbar] '{name}' → NetworkHealthSync on '{_healthSync.name}'.");
             return;
         }
 
-        // Priority 2: Plain Health — used by non-networked entities (enemies, destructibles).
+        // Priority 2 — plain Health (enemies).
         _health = GetComponentInParent<Health>();
         if (_health != null)
         {
             _health.OnDamaged += OnHealthChanged;
-
-            // Initialize the bar immediately to full health.
-            UpdateHealthBar(_health.MaxHealth, _health.CurrentHealth);
+            SnapFill(_health.MaxHealth, _health.CurrentHealth);
+            Debug.Log($"[Healthbar] '{name}' → Health on '{_health.name}' " +
+                      $"({_health.CurrentHealth}/{_health.MaxHealth} HP).");
             return;
         }
 
-        Debug.LogWarning($"[Healthbar] No NetworkHealthSync or Health found above '{gameObject.name}'. " +
-                         "Health bar will not update automatically.", this);
+        Debug.LogWarning($"[Healthbar] No health source found above '{name}'.", this);
     }
 
     private void OnDestroy()
     {
-        // Unsubscribe to prevent callbacks after this object is destroyed.
-        if (_healthSync != null)
-            _healthSync.OnHealthChanged -= OnHealthChanged;
-
-        if (_health != null)
-            _health.OnDamaged -= OnHealthChanged;
+        if (_healthSync != null) _healthSync.OnHealthChanged -= OnHealthChanged;
+        if (_health     != null) _health.OnDamaged           -= OnHealthChanged;
     }
 
     private void Update()
     {
-        // Camera may not be ready on the first frame — retry until available.
-        if (_cam == null)
-        {
-            _cam = Camera.main;
-            return;
-        }
+        if (_fillImage == null) return;
 
-        // Billboard: make the bar face the local camera every frame.
-        // Using LookRotation(pos - camPos) points +Z away from the camera,
-        // which causes the Canvas face (+Z side) to look toward the camera.
-        transform.rotation = Quaternion.LookRotation(transform.position - _cam.transform.position);
+        // Poll fallback for enemies — keeps bar in sync even if an event was missed.
+        if (_health != null)
+            _target = _health.MaxHealth > 0 ? (float)_health.CurrentHealth / _health.MaxHealth : 0f;
 
-        // Smoothly approach the target fill — produces the satisfying drain effect.
-        _healthbarSprite.fillAmount = Mathf.MoveTowards(
-            _healthbarSprite.fillAmount, _target, _reduceSpeed * Time.deltaTime);
+        // ── Fill + color — no camera needed ──────────────────────────────────
+        float newFill = Mathf.MoveTowards(_fillImage.fillAmount, _target, _drainSpeed * Time.deltaTime);
+        _fillImage.fillAmount = newFill;
+        _fillImage.color      = FillColor(newFill);
+
+        // ── Billboard — camera needed ─────────────────────────────────────────
+        if (_cam == null) _cam = Camera.main;
+        if (_cam != null)
+            transform.rotation = Quaternion.LookRotation(transform.position - _cam.transform.position);
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────
+    // ── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Sets the target fill amount from raw health values.
-    /// The bar drains smoothly to the new target on subsequent Update frames.
-    /// </summary>
-    public void UpdateHealthBar(float maxHealth, float currentHealth)
+    /// <summary>Instantly snaps fill and color to the current health (no animation).</summary>
+    private void SnapFill(int maxHealth, int currentHealth)
     {
-        _target = maxHealth > 0f ? currentHealth / maxHealth : 0f;
+        _target = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+        if (_fillImage != null)
+        {
+            _fillImage.fillAmount = _target;
+            _fillImage.color      = FillColor(_target);
+        }
     }
 
-    // ── Private ──────────────────────────────────────────────────────────────
+    /// <summary>Green → yellow → red gradient based on fill ratio [0..1].</summary>
+    private static Color FillColor(float fill)
+    {
+        if (fill > 0.5f) return Color.Lerp(_colorHalf, _colorFull,     (fill - 0.5f) * 2f);
+        else             return Color.Lerp(_colorCritical, _colorHalf, fill * 2f);
+    }
 
+    /// <summary>Called by both NetworkHealthSync.OnHealthChanged and Health.OnDamaged.</summary>
     private void OnHealthChanged(int currentHealth, int maxHealth)
     {
-        UpdateHealthBar(maxHealth, currentHealth);
+        _target = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
     }
 }
