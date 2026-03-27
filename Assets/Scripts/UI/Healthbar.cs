@@ -26,12 +26,6 @@ public class Healthbar : MonoBehaviour
     [Tooltip("Drain speed in fill-units per second. 2 = full-to-empty in 0.5 s.")]
     [SerializeField] private float _drainSpeed = 2f;
 
-    // ── Color gradient ───────────────────────────────────────────────────────
-
-    private static readonly Color _colorFull     = new Color(0.18f, 0.82f, 0.18f); // green
-    private static readonly Color _colorHalf     = new Color(1.00f, 0.80f, 0.00f); // yellow
-    private static readonly Color _colorCritical = new Color(0.90f, 0.10f, 0.10f); // red
-
     // ── Private state ────────────────────────────────────────────────────────
 
     // Target fill ratio [0..1]. Set by damage events; fillAmount animates toward it.
@@ -97,9 +91,7 @@ public class Healthbar : MonoBehaviour
             _target = _health.MaxHealth > 0 ? (float)_health.CurrentHealth / _health.MaxHealth : 0f;
 
         // ── Fill + color — no camera needed ──────────────────────────────────
-        float newFill = Mathf.MoveTowards(_fillImage.fillAmount, _target, _drainSpeed * Time.deltaTime);
-        _fillImage.fillAmount = newFill;
-        _fillImage.color      = FillColor(newFill);
+        _fillImage.fillAmount = Mathf.MoveTowards(_fillImage.fillAmount, _target, _drainSpeed * Time.deltaTime);
 
         // ── Billboard — camera needed ─────────────────────────────────────────
         if (_cam == null) _cam = Camera.main;
@@ -116,15 +108,7 @@ public class Healthbar : MonoBehaviour
         if (_fillImage != null)
         {
             _fillImage.fillAmount = _target;
-            _fillImage.color      = FillColor(_target);
         }
-    }
-
-    /// <summary>Green → yellow → red gradient based on fill ratio [0..1].</summary>
-    private static Color FillColor(float fill)
-    {
-        if (fill > 0.5f) return Color.Lerp(_colorHalf, _colorFull,     (fill - 0.5f) * 2f);
-        else             return Color.Lerp(_colorCritical, _colorHalf, fill * 2f);
     }
 
     /// <summary>Called by both NetworkHealthSync.OnHealthChanged and Health.OnDamaged.</summary>
