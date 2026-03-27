@@ -22,8 +22,11 @@ public class Health : MonoBehaviour, IDamageable
     /// <summary>Maximum health, set in the Inspector.</summary>
     public int MaxHealth => maxHealth;
 
+    [Header("Debug (read-only)")]
+    [SerializeField] private int _currentHealth;
+
     /// <summary>Current health. Always between 0 and MaxHealth.</summary>
-    public int CurrentHealth { get; private set; }
+    public int CurrentHealth => _currentHealth;
 
     /// <summary>True once health reaches zero. Prevents duplicate death events.</summary>
     public bool IsDead { get; private set; }
@@ -54,7 +57,7 @@ public class Health : MonoBehaviour, IDamageable
     private void Awake()
     {
         // Start at full health
-        CurrentHealth = maxHealth;
+        _currentHealth =maxHealth;
 
         // Optional — not every damageable object has an elemental component
         TryGetComponent(out _elementStatus);
@@ -73,7 +76,7 @@ public class Health : MonoBehaviour, IDamageable
         if (IsDead) return;
 
         // Subtract damage and clamp to [0, MaxHealth]
-        CurrentHealth = Mathf.Clamp(CurrentHealth - damageInfo.Amount, 0, maxHealth);
+        _currentHealth = Mathf.Clamp(_currentHealth - damageInfo.Amount, 0, maxHealth);
 
         Debug.Log($"[Health] {gameObject.name} took {damageInfo.Amount} damage — " +
                   $"{CurrentHealth}/{maxHealth} HP remaining.");
