@@ -3,124 +3,158 @@ using UnityEngine;
 /// <summary>
 /// Runtime controller for the Fireball prefab.
 ///
-/// Responsibilities:
-///   - Flickers the fire point light via Perlin noise for a live, organic look.
-///   - Pulses the light color between deep orange and hot white (anime feel).
-///   - Provides Extinguish() to gracefully stop all particles on hit.
-///   - Provides SetLightColor() to tint the light for elemental reactions.
+/// Manages two independent lights:
+///   - FireLight      : warm outer glow — slow organic flicker (Perlin noise)
+///   - InnerCoreLight : blue-white magical core — fast subtle heartbeat (separate Perlin track)
 ///
-/// Attach this to the root "Fireball" GameObject.
-/// The FireLight child object is auto-detected on Start if not assigned.
+/// Both lights are located by GameObject name in children.
+/// Provides Extinguish() and SetLightColor() for gameplay integration.
 /// </summary>
 public class FireballController : MonoBehaviour
 {
-    // ── Inspector ─────────────────────────────────────────────────────────────
+    // ── Inspector — Outer Fire Light ──────────────────────────────────────────
 
-    [Header("Light Flicker")]
-    [Tooltip("Point light child that simulates fire glow. Auto-found if null.")]
+    [Header("Outer Fire Light")]
+    [Tooltip("Warm point light driven by slow organic flicker. Auto-found by name 'FireLight'.")]
     [SerializeField] private Light _fireLight;
 
-    [Tooltip("Resting light intensity.")]
-    [SerializeField] private float _baseLightIntensity = 3.5f;
+    [Tooltip("Base (resting) intensity of the outer fire light.")]
+    [SerializeField] private float _baseLightIntensity = 4f;
 
-    [Tooltip("How much intensity varies above/below base per flicker cycle.")]
-    [SerializeField] private float _flickerAmount = 1.2f;
+    [Tooltip("How much the outer light intensity varies per flicker.")]
+    [SerializeField] private float _flickerAmount = 1.5f;
 
-    [Tooltip("How fast the light flickers. Higher = more nervous flame.")]
-    [SerializeField] private float _flickerSpeed = 7f;
+    [Tooltip("Speed of the outer light Perlin noise track.")]
+    [SerializeField] private float _flickerSpeed = 6f;
 
-    [Header("Light Color Pulse")]
-    [Tooltip("Lerp the light color between these two values for an anime 'living fire' look.")]
-    [SerializeField] private bool  _colorPulse   = true;
-    [SerializeField] private Color _lightColorLow  = new Color(1f, 0.30f, 0.04f); // deep ember orange
-    [SerializeField] private Color _lightColorHigh = new Color(1f, 0.82f, 0.35f); // hot yellow-white
+    [Header("Outer Light Color Pulse")]
+    [Tooltip("Pulse outer light color between deep orange and hot yellow.")]
+    [SerializeField] private bool  _colorPulse    = true;
+    [SerializeField] private Color _lightColorLow  = new Color(1f, 0.28f, 0.03f); // deep ember orange
+    [SerializeField] private Color _lightColorHigh = new Color(1f, 0.80f, 0.30f); // hot golden-yellow
+
+    // ── Inspector — Inner Core Light ──────────────────────────────────────────
+
+    [Header("Inner Core Light (Magical)")]
+    [Tooltip("Small bright blue-white light at the magical core. Auto-found by name 'InnerCoreLight'.")]
+    [SerializeField] private Light _innerCoreLight;
+
+    [Tooltip("Base intensity of the inner core light.")]
+    [SerializeField] private float _innerCoreBaseIntensity = 8f;
+
+    [Tooltip("Subtle flicker amplitude for the inner core (magical heartbeat).")]
+    [SerializeField] private float _innerCoreFlicker = 2.5f;
+
+    // ── Inspector — Auto Destroy ──────────────────────────────────────────────
 
     [Header("Auto Destroy")]
-    [Tooltip("When true, destroys this GameObject after 'lifetime' seconds.")]
+    [Tooltip("Destroy this GameObject after 'lifetime' seconds.")]
     [SerializeField] private bool  _autoDestroy = false;
     [SerializeField] private float _lifetime    = 5f;
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    // Independent Perlin offsets so each fireball flickers differently.
-    private float _noiseOffsetIntensity;
+    // Independent Perlin offsets so every fireball instance is unique.
+    private float _noiseOffsetFire;
     private float _noiseOffsetColor;
+    private float _noiseOffsetCore;
 
-    // Accumulated time scaled by flicker speed.
+    // Accumulated time — each light track runs at a different speed.
     private float _noiseTime;
 
     // ── Unity Lifecycle ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Randomises Perlin offsets so every fireball instance flickers differently.
-    /// Auto-locates the FireLight child if not assigned in the Inspector.
+    /// Locates both lights by child GameObject name.
+    /// Randomises Perlin offsets so instances never flicker in sync.
     /// </summary>
     private void Start()
     {
-        _noiseOffsetIntensity = Random.Range(0f, 100f);
-        _noiseOffsetColor     = Random.Range(0f, 100f);
+        _noiseOffsetFire  = Random.Range(0f, 100f);
+        _noiseOffsetColor = Random.Range(0f, 100f);
+        _noiseOffsetCore  = Random.Range(0f, 100f);
 
-        // Auto-locate light in children if Inspector reference is empty.
+        // Look up lights by exact child name for reliable results.
         if (_fireLight == null)
-            _fireLight = GetComponentInChildren<Light>();
+        {
+            var fireChild = transform.Find("FireLight");
+            _fireLight = fireChild != null ? fireChild.GetComponent<Light>() : GetComponentInChildren<Light>();
+        }
 
-        if (_fireLight == null)
-            Debug.LogWarning("[FireballController] No Light found in children. Flicker disabled.");
+        if (_innerCoreLight == null)
+        {
+            var coreChild = transform.Find("InnerCoreLight");
+            if (coreChild != null) _innerCoreLight = coreChild.GetComponent<Light>();
+        }
 
         if (_autoDestroy)
             Destroy(gameObject, _lifetime);
 
-        Debug.Log($"[FireballController] Initialized on '{name}'.");
+        Debug.Log($"[FireballController] Initialized. FireLight={_fireLight != null}, " +
+                  $"InnerCoreLight={_innerCoreLight != null}");
     }
 
     /// <summary>
-    /// Every frame: advances the Perlin noise time and drives intensity + color flicker.
-    /// Runs only on the owner client (or server) — purely cosmetic, no network sync needed.
+    /// Drives both lights every frame:
+    ///   - FireLight: slow (~6 Hz) organic flicker + color pulse.
+    ///   - InnerCoreLight: fast (~15 Hz) subtle heartbeat (independent track).
     /// </summary>
     private void Update()
     {
-        if (_fireLight == null) return;
+        _noiseTime += Time.deltaTime;
 
-        _noiseTime += Time.deltaTime * _flickerSpeed;
-
-        // Intensity: maps Perlin [0,1] → [base - flicker, base + flicker]
-        float nIntensity = Mathf.PerlinNoise(_noiseTime, _noiseOffsetIntensity);
-        _fireLight.intensity = _baseLightIntensity + (nIntensity - 0.5f) * 2f * _flickerAmount;
-
-        // Color pulse: slower independent noise track
-        if (_colorPulse)
+        // ── Outer fire light (slow, dramatic) ────────────────────────────────
+        if (_fireLight != null)
         {
-            float nColor = Mathf.PerlinNoise(_noiseTime * 0.55f, _noiseOffsetColor);
-            _fireLight.color = Color.Lerp(_lightColorLow, _lightColorHigh, nColor);
+            float t = _noiseTime * _flickerSpeed;
+            float n = Mathf.PerlinNoise(t, _noiseOffsetFire);
+            _fireLight.intensity = _baseLightIntensity + (n - 0.5f) * 2f * _flickerAmount;
+
+            if (_colorPulse)
+            {
+                float nc = Mathf.PerlinNoise(t * 0.5f, _noiseOffsetColor);
+                _fireLight.color = Color.Lerp(_lightColorLow, _lightColorHigh, nc);
+            }
+        }
+
+        // ── Inner core light (fast, subtle — magical heartbeat) ───────────────
+        if (_innerCoreLight != null)
+        {
+            float tc = _noiseTime * 14f; // faster track
+            float nc = Mathf.PerlinNoise(tc, _noiseOffsetCore);
+            _innerCoreLight.intensity = _innerCoreBaseIntensity + (nc - 0.5f) * 2f * _innerCoreFlicker;
         }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Gracefully stops all child particle emitters and turns off the light.
-    /// Call just before destroying the projectile so particles finish naturally.
+    /// Stops all child particle emitters and disables both lights.
+    /// Call just before destroying the projectile on impact.
     /// </summary>
     public void Extinguish()
     {
         foreach (var ps in GetComponentsInChildren<ParticleSystem>())
             ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
 
-        if (_fireLight != null)
-            _fireLight.enabled = false;
+        if (_fireLight != null)       _fireLight.enabled       = false;
+        if (_innerCoreLight != null)  _innerCoreLight.enabled  = false;
 
         Debug.Log($"[FireballController] '{name}' extinguished.");
     }
 
     /// <summary>
-    /// Tints the fire light to the given color.
-    /// Useful for elemental reactions (e.g. Freeze reaction tints the light blue).
-    /// Automatically derives a darker variant for the low-pulse color.
+    /// Tints both lights to the given color (for elemental reactions).
+    /// The inner core stays slightly cooler (multiply by 0.6 and shift toward white).
     /// </summary>
     public void SetLightColor(Color color)
     {
         _lightColorHigh = color;
-        _lightColorLow  = color * 0.55f;
+        _lightColorLow  = color * 0.5f;
+
+        // Keep the inner core bluer/whiter to suggest heat even with a color override.
+        if (_innerCoreLight != null)
+            _innerCoreLight.color = Color.Lerp(color, Color.white, 0.4f);
 
         if (_fireLight != null)
             _fireLight.color = color;
