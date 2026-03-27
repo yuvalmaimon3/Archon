@@ -21,8 +21,11 @@ public class EnemyCombatBrain : MonoBehaviour
     [SerializeField] private AttackController attackController;
 
     [Header("Target")]
-    [Tooltip("The Transform this enemy attacks toward. Assign the player or any valid target here.")]
+    [Tooltip("The Transform this enemy attacks toward. Leave empty to auto-find by 'Player' tag at runtime.")]
     [SerializeField] private Transform target;
+
+    [Tooltip("Unity tag used to locate the player when no target is assigned.")]
+    [SerializeField] private string playerTag = "Player";
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -37,8 +40,14 @@ public class EnemyCombatBrain : MonoBehaviour
 
     private void Update()
     {
-        // Nothing to do without a valid target or controller
-        if (attackController == null || target == null) return;
+        if (attackController == null) return;
+
+        // Auto-find player each frame until one is found.
+        // This handles cases where the player spawns after the enemy (e.g. NGO late-join).
+        if (target == null)
+            target = FindPlayer();
+
+        if (target == null) return;
 
         if (IsTargetInRange())
             TryAttack();
@@ -70,6 +79,18 @@ public class EnemyCombatBrain : MonoBehaviour
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Searches the scene for a GameObject with the player tag.
+    /// Returns null if none exists yet (player may not have spawned).
+    /// </summary>
+    private Transform FindPlayer()
+    {
+        var playerGO = GameObject.FindGameObjectWithTag(playerTag);
+        if (playerGO != null)
+            Debug.Log($"[EnemyCombatBrain] '{name}' locked on player '{playerGO.name}'.");
+        return playerGO != null ? playerGO.transform : null;
+    }
 
     /// <summary>
     /// Returns true when the target is within the attack's configured range.
