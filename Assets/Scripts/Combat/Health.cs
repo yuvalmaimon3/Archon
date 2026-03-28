@@ -93,6 +93,20 @@ public class Health : MonoBehaviour, IDamageable
             Die(damageInfo);
     }
 
+    // ── Network sync ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Applies a health value received from the server without processing damage logic.
+    /// Used by NetworkDeathSync to keep client health bars in sync with the authoritative
+    /// server state. Fires OnDamaged so health bar components react, but does NOT trigger
+    /// death — NetworkDeathSync handles death via a separate ClientRpc.
+    /// </summary>
+    public void ForceSync(int currentHealth)
+    {
+        _currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
     // ── Private ──────────────────────────────────────────────────────────────
 
     /// <summary>
