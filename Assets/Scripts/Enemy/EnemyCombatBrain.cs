@@ -13,7 +13,11 @@ using UnityEngine;
 /// replace SetTarget() calls from a future targeting/AI system without
 /// touching any of the attack logic here.
 /// </summary>
-public class EnemyCombatBrain : MonoBehaviour
+/// <summary>
+/// IDeathHandler implementation: clears the attack target so no stale reference remains
+/// after this component is disabled by DeathController.
+/// </summary>
+public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
 {
     [Header("References")]
     [Tooltip("The attack controller that owns the cooldown and AttackDefinition. " +
@@ -140,5 +144,17 @@ public class EnemyCombatBrain : MonoBehaviour
     private Vector3 GetAttackDirection()
     {
         return (target.position - transform.position).normalized;
+    }
+
+    // ── IDeathHandler ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by DeathController when this entity dies.
+    /// Clears the target so no stale Transform reference remains after the component is disabled.
+    /// </summary>
+    public void OnDeath()
+    {
+        target = null;
+        Debug.Log($"[EnemyCombatBrain] '{name}' target cleared on death.");
     }
 }
