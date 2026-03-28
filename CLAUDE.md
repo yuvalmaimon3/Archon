@@ -9,6 +9,7 @@ At the start of every session, read all files in `.claude/memory/` to restore pr
 
 # Unity UI Hierarchy
 - All objects must be accessible via the Unity UI Hierarchy window unless there is a good reason otherwise.
+- as generals make importan variables as SerializeField
 
 # Unity C# Code Standards
 
@@ -34,7 +35,7 @@ Write production-quality Unity C# code as a professional.
 - Avoid unnecessary allocations and expensive operations in Update loops.
 
 ## Unity Patterns
-- Use appropriate Unity patterns (MonoBehaviour, ScriptableObjects, events) when relevant.
+- Use appropriate Unity patterns (MonoBehaviour, ScriptableObjects, events, singelton and etc) when relevant.
 
 ## When Modifying Existing Code
 - Match the existing style and architecture.
@@ -45,10 +46,10 @@ Write production-quality Unity C# code as a professional.
 
 
 ## git
-If you modified files, at the end of the task automatically run:
+- If you modified files, at the end of the task automatically run:
 
 git add -A
 git commit -m "<short descriptive commit message>"
 
-If the automatic commit fails, stop and report the exact error.
-Do not fix Git errors unless I explicitly asked for a Git-related task.
+- If the automatic commit fails, stop and report the exact error.
+- Do not fix Git errors unless I explicitly asked for a Git-related task.

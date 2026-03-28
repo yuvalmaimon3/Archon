@@ -1,0 +1,3 @@
+{
+  "csharpCode": "using UnityEngine;\nusing UnityEditor;\n\npublic class Script\n{\n    public static string Main()\n    {\n        // Check player prefab tag\n        string[] guids = AssetDatabase.FindAssets(\"t:Prefab Player\");\n        foreach (var guid in guids)\n        {\n            string path = AssetDatabase.GUIDToAssetPath(guid);\n            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);\n            if (prefab == null) continue;\n            return $\"Player prefab '{prefab.name}' at '{path}' has tag: '{prefab.tag}'\";\n        }\n        return \"No Player prefab found.\";\n    }\n}"
+}
