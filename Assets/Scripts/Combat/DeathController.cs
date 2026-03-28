@@ -6,22 +6,26 @@ using UnityEngine;
 ///
 /// On death (triggered by Health.OnDeath):
 ///   1. Calls OnDeath() on every IDeathHandler found in the hierarchy — custom per-component cleanup.
-///   2. Disables every MonoBehaviour listed in _disableOnDeath — stops AI, combat, movement, etc.
-///   3. Fires OnDied — external listeners (animation system, VFX, loot, game-over screen) hook here.
+///   2. Disables every Behaviour listed in _disableOnDeath (scripts, renderers, etc.).
+///   3. Disables every Collider listed in _disableColliders — projectiles and physics pass through.
+///   4. Fires OnDied — external listeners (animation system, VFX, loot, game-over screen) hook here.
 ///
 /// The entity is intentionally kept alive as a "ghost":
 ///   - No Destroy() call here — destruction, respawn, or pooling belongs to a higher-level system.
-///   - Physics and rendering remain active unless explicitly listed in _disableOnDeath.
 ///
 /// Requires a Health component on the same GameObject.
 /// </summary>
 [RequireComponent(typeof(Health))]
 public class DeathController : MonoBehaviour
 {
-    [Header("Disable on Death")]
-    [Tooltip("Behaviours to disable when this entity dies (AI brain, combat, movement, etc.). " +
-             "These go silent immediately — no Update, no coroutine overhead.")]
-    [SerializeField] private MonoBehaviour[] _disableOnDeath;
+    [Header("Disable on Death — Behaviours")]
+    [Tooltip("Scripts, renderers, and other Behaviours to disable on death " +
+             "(AI brain, combat, movement, health bar, mesh renderer, etc.).")]
+    [SerializeField] private Behaviour[] _disableOnDeath;
+
+    [Header("Disable on Death — Colliders")]
+    [Tooltip("Physics colliders to disable on death so projectiles and physics pass through the corpse.")]
+    [SerializeField] private Collider[] _disableColliders;
 
     // ── Events ───────────────────────────────────────────────────────────────
 
@@ -56,7 +60,7 @@ public class DeathController : MonoBehaviour
 
     /// <summary>
     /// Triggered by Health.OnDeath. Runs the full death sequence:
-    /// custom handlers → component shutdown → external event.
+    /// custom handlers → component shutdown → collider shutdown → external event.
     /// </summary>
     private void HandleDeath(DamageInfo killingBlow)
     {
@@ -65,18 +69,39 @@ public class DeathController : MonoBehaviour
         foreach (var handler in handlers)
             handler.OnDeath();
 
-        // Step 2 — shut down listed behaviours (removes them from Unity's Update loop)
-        foreach (var behaviour in _disableOnDeath)
+        // Step 2 — disable behaviours (scripts, renderers) — removes them from Unity's update loop
+        int behaviourCount = 0;
+        if (_disableOnDeath != null)
         {
-            if (behaviour != null)
-                behaviour.enabled = false;
+            foreach (var behaviour in _disableOnDeath)
+            {
+                if (behaviour != null)
+                {
+                    behaviour.enabled = false;
+                    behaviourCount++;
+                }
+            }
         }
 
-        int disabledCount = _disableOnDeath?.Length ?? 0;
-        Debug.Log($"[DeathController] '{name}' entered ghost state — " +
-                  $"notified {handlers.Length} handler(s), disabled {disabledCount} behaviour(s).");
+        // Step 3 — disable colliders so projectiles and physics pass through the corpse
+        int colliderCount = 0;
+        if (_disableColliders != null)
+        {
+            foreach (var col in _disableColliders)
+            {
+                if (col != null)
+                {
+                    col.enabled = false;
+                    colliderCount++;
+                }
+            }
+        }
 
-        // Step 3 — notify external systems (animation, VFX, loot, etc.)
+        Debug.Log($"[DeathController] '{name}' entered ghost state — " +
+                  $"notified {handlers.Length} handler(s), " +
+                  $"disabled {behaviourCount} behaviour(s), {colliderCount} collider(s).");
+
+        // Step 4 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
     }
 }

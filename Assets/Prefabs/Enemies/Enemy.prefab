@@ -423,5 +423,9 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   _disableOnDeath:
+  - {fileID: 6166063980066832875}
   - {fileID: 539296160653742673}
   - {fileID: 678957969863094098}
+  - {fileID: 4294394600185114394}
+  _disableColliders:
+  - {fileID: 1290987537558480332}
