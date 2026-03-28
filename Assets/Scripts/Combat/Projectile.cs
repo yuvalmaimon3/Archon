@@ -145,6 +145,9 @@ public class Projectile : NetworkBehaviour
 
         if (!_isInitialized || _hasHit) return;
 
+        // Projectiles pass through each other — no friendly/enemy fire between projectiles.
+        if (other.TryGetComponent<Projectile>(out _)) return;
+
         // Ignore the source and its children (e.g. player body-part colliders).
         if (_source != null &&
             (other.gameObject == _source || other.transform.IsChildOf(_source.transform)))
