@@ -169,7 +169,8 @@ public class DeathController : MonoBehaviour
         if (netObj != null && netObj.IsSpawned)
         {
             // Only the server owns the lifetime — it despawns and NGO propagates to clients.
-            if (netObj.IsServer)
+            // IsServer lives on NetworkBehaviour/NetworkManager, not NetworkObject.
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
                 StartCoroutine(DespawnAfterDelay(netObj));
             // Client: does nothing — awaits the server-driven NGO Despawn.
             return;
