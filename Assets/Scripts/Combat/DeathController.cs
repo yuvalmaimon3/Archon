@@ -32,6 +32,10 @@ public class DeathController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float _destroyDelay = 3f;
 
+    [Tooltip("When false the GameObject is never auto-destroyed after death — " +
+             "use this for players so a future revive system can restore them.")]
+    [SerializeField] private bool _autoDestroy = true;
+
     // ── Events ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -114,7 +118,8 @@ public class DeathController : MonoBehaviour
         // Step 7 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
 
-        // Step 8 — schedule destruction
-        Destroy(gameObject, _destroyDelay);
+        // Step 8 — schedule destruction (skipped for players who may be revived)
+        if (_autoDestroy)
+            Destroy(gameObject, _destroyDelay);
     }
 }

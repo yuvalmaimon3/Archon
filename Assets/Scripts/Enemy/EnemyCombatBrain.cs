@@ -31,6 +31,10 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     [Tooltip("Unity tag used to locate the player when no target is assigned.")]
     [SerializeField] private string playerTag = "Player";
 
+    // Cached Health of the current target — checked each frame to detect when the player dies.
+    // Avoids GetComponent per frame; populated whenever a new target is assigned.
+    private Health _targetHealth;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -53,6 +57,18 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
 
         if (target == null) return;
 
+        // Drop the target immediately when the player dies — stops the enemy from
+        // tracking and shooting at a dead player. The IsDead bool is a simple read,
+        // no GC pressure. FindPlayer() will return null (tag changed to Untagged by
+        // DeathController) so the enemy stays idle until a new live player is available.
+        if (_targetHealth != null && _targetHealth.IsDead)
+        {
+            Debug.Log($"[EnemyCombatBrain] '{name}' target '{target.name}' is dead — clearing.");
+            target = null;
+            _targetHealth = null;
+            return;
+        }
+
         if (IsTargetInRange())
             TryAttack();
     }
@@ -61,9 +77,14 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
 
     /// <summary>
     /// Assigns or replaces the current attack target at runtime.
+    /// Also caches the target's Health component so Update can check IsDead cheaply.
     /// Call this from a targeting system or room spawner when the target is known.
     /// </summary>
-    public void SetTarget(Transform newTarget) => target = newTarget;
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+        _targetHealth = newTarget != null ? newTarget.GetComponent<Health>() : null;
+    }
 
     /// <summary>
     /// Attempts to execute the current attack toward the active target.
@@ -92,7 +113,11 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     {
         var playerGO = GameObject.FindGameObjectWithTag(playerTag);
         if (playerGO != null)
+        {
+            // Cache Health once so Update can poll IsDead without a per-frame GetComponent.
+            _targetHealth = playerGO.GetComponent<Health>();
             Debug.Log($"[EnemyCombatBrain] '{name}' locked on player '{playerGO.name}'.");
+        }
         return playerGO != null ? playerGO.transform : null;
     }
 
@@ -155,6 +180,7 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     public void OnDeath()
     {
         target = null;
+        _targetHealth = null;
         Debug.Log($"[EnemyCombatBrain] '{name}' target cleared on death.");
     }
 }
