@@ -92,7 +92,11 @@ public class DeathController : MonoBehaviour
             foreach (var col in _disableColliders)
                 if (col != null) { col.enabled = false; colliderCount++; }
 
-        // Step 5 — freeze physics: kinematic stops gravity and forces so the corpse
+        // Step 5 — remove enemy tag so targeting systems (FindGameObjectsWithTag) skip
+        // this corpse immediately — cheaper than a per-frame IsDead check on every dead enemy.
+        gameObject.tag = "Untagged";
+
+        // Step 6 — freeze physics: kinematic stops gravity and forces so the corpse
         // stays exactly where it died. Rigidbody is kept available for future ragdoll/animation.
         var rb = GetComponent<Rigidbody>();
         if (rb != null)
@@ -107,10 +111,10 @@ public class DeathController : MonoBehaviour
                   $"renderers:{rendererCount} colliders:{colliderCount}. " +
                   $"Destroy in {_destroyDelay}s.");
 
-        // Step 6 — notify external systems (animation, VFX, loot, etc.)
+        // Step 7 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
 
-        // Step 7 — schedule destruction
+        // Step 8 — schedule destruction
         Destroy(gameObject, _destroyDelay);
     }
 }
