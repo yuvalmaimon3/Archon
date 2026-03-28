@@ -425,7 +425,6 @@ MonoBehaviour:
   _disableOnDeath:
   - {fileID: 539296160653742673}
   - {fileID: 678957969863094098}
-  - {fileID: 4294394600185114394}
   _disableRenderers: []
   _disableColliders:
   - {fileID: 1290987537558480332}
