@@ -31,6 +31,9 @@ Write production-quality Unity C# code as a professional.
 - Handle edge cases and errors cleanly.
 - Add logs in important places so i can get feedbacks when i test the game
 
+## networking 
+- when you write code pay attention if network tools are requierd such (NetworkBehaviour, NGO ,RCP)
+
 ## Performance
 - Avoid unnecessary allocations and expensive operations in Update loops.
 
