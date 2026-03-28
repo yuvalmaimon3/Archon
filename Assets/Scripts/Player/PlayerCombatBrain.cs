@@ -209,6 +209,11 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         foreach (var enemy in enemies)
         {
+            // Skip enemies that are already dead — their colliders are gone and they
+            // should not be targeted so projectiles and UI don't waste cycles on corpses.
+            var health = enemy.GetComponent<Health>();
+            if (health != null && health.IsDead) continue;
+
             float sqDist = (enemy.transform.position - transform.position).sqrMagnitude;
             if (sqDist < nearestSqDist)
             {

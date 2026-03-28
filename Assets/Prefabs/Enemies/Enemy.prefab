@@ -91,7 +91,7 @@ GameObject:
   - component: {fileID: 2420507458251296782}
   - component: {fileID: 539296160653742673}
   - component: {fileID: 678957969863094098}
-  - component: {fileID: 9876543210987654321}
+  - component: {fileID: 1234567890123456789}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -410,7 +410,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _fillImage: {fileID: 7713924849687166833}
   _drainSpeed: 2
---- !u!114 &9876543210987654321
+--- !u!114 &1234567890123456789
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -423,9 +423,11 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   _disableOnDeath:
-  - {fileID: 6166063980066832875}
   - {fileID: 539296160653742673}
   - {fileID: 678957969863094098}
   - {fileID: 4294394600185114394}
+  _disableRenderers:
+  - {fileID: 6166063980066832875}
   _disableColliders:
   - {fileID: 1290987537558480332}
+  _destroyDelay: 3

@@ -6,31 +6,36 @@ using UnityEngine;
 ///
 /// On death (triggered by Health.OnDeath):
 ///   1. Calls OnDeath() on every IDeathHandler found in the hierarchy — custom per-component cleanup.
-///   2. Disables every Behaviour listed in _disableOnDeath (scripts, renderers, etc.).
-///   3. Disables every Collider listed in _disableColliders — projectiles and physics pass through.
-///   4. Fires OnDied — external listeners (animation system, VFX, loot, game-over screen) hook here.
-///
-/// The entity is intentionally kept alive as a "ghost":
-///   - No Destroy() call here — destruction, respawn, or pooling belongs to a higher-level system.
+///   2. Disables every MonoBehaviour listed in _disableOnDeath (AI, combat, movement, etc.).
+///   3. Disables every Renderer listed in _disableRenderers (mesh, skinned mesh, etc.).
+///   4. Disables every Collider listed in _disableColliders — projectiles and physics pass through.
+///   5. Fires OnDied — hook here for animation, VFX, loot, game-over.
+///   6. Destroys the GameObject after _destroyDelay seconds.
 ///
 /// Requires a Health component on the same GameObject.
 /// </summary>
 [RequireComponent(typeof(Health))]
 public class DeathController : MonoBehaviour
 {
-    [Header("Disable on Death — Behaviours")]
-    [Tooltip("Scripts, renderers, and other Behaviours to disable on death " +
-             "(AI brain, combat, movement, health bar, mesh renderer, etc.).")]
-    [SerializeField] private Behaviour[] _disableOnDeath;
+    [Header("Disable on Death")]
+    [Tooltip("Scripts and behaviours to disable (AI brain, combat, movement, health bar, etc.).")]
+    [SerializeField] private MonoBehaviour[] _disableOnDeath;
 
-    [Header("Disable on Death — Colliders")]
-    [Tooltip("Physics colliders to disable on death so projectiles and physics pass through the corpse.")]
+    [Tooltip("Renderers to disable (MeshRenderer, SkinnedMeshRenderer, etc.).")]
+    [SerializeField] private Renderer[] _disableRenderers;
+
+    [Tooltip("Colliders to disable so projectiles and physics pass through the corpse.")]
     [SerializeField] private Collider[] _disableColliders;
+
+    [Header("Cleanup")]
+    [Tooltip("Seconds after death before the GameObject is destroyed. Set to 0 to destroy immediately.")]
+    [Min(0f)]
+    [SerializeField] private float _destroyDelay = 3f;
 
     // ── Events ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Fired once when this entity dies.
+    /// Fired once when this entity dies, before the destroy timer starts.
     /// Subscribe here for death animation, VFX, loot drops, game-over logic, etc.
     /// </summary>
     public event Action OnDied;
@@ -60,48 +65,42 @@ public class DeathController : MonoBehaviour
 
     /// <summary>
     /// Triggered by Health.OnDeath. Runs the full death sequence:
-    /// custom handlers → component shutdown → collider shutdown → external event.
+    /// IDeathHandler cleanup → script shutdown → renderer hide → collider off → destroy timer.
     /// </summary>
     private void HandleDeath(DamageInfo killingBlow)
     {
-        // Step 1 — let each component do its own cleanup (clear targets, stop coroutines, etc.)
+        // Step 1 — custom per-component cleanup (clear targets, stop coroutines, etc.)
         var handlers = GetComponentsInChildren<IDeathHandler>();
         foreach (var handler in handlers)
             handler.OnDeath();
 
-        // Step 2 — disable behaviours (scripts, renderers) — removes them from Unity's update loop
-        int behaviourCount = 0;
+        // Step 2 — disable scripts/behaviours (stops Update loops, coroutines, etc.)
+        int scriptCount = 0;
         if (_disableOnDeath != null)
-        {
-            foreach (var behaviour in _disableOnDeath)
-            {
-                if (behaviour != null)
-                {
-                    behaviour.enabled = false;
-                    behaviourCount++;
-                }
-            }
-        }
+            foreach (var mb in _disableOnDeath)
+                if (mb != null) { mb.enabled = false; scriptCount++; }
 
-        // Step 3 — disable colliders so projectiles and physics pass through the corpse
+        // Step 3 — hide renderers (body disappears until death animation is added)
+        int rendererCount = 0;
+        if (_disableRenderers != null)
+            foreach (var r in _disableRenderers)
+                if (r != null) { r.enabled = false; rendererCount++; }
+
+        // Step 4 — disable colliders so projectiles pass through the corpse
         int colliderCount = 0;
         if (_disableColliders != null)
-        {
             foreach (var col in _disableColliders)
-            {
-                if (col != null)
-                {
-                    col.enabled = false;
-                    colliderCount++;
-                }
-            }
-        }
+                if (col != null) { col.enabled = false; colliderCount++; }
 
-        Debug.Log($"[DeathController] '{name}' entered ghost state — " +
-                  $"notified {handlers.Length} handler(s), " +
-                  $"disabled {behaviourCount} behaviour(s), {colliderCount} collider(s).");
+        Debug.Log($"[DeathController] '{name}' ghost state — " +
+                  $"handlers:{handlers.Length} scripts:{scriptCount} " +
+                  $"renderers:{rendererCount} colliders:{colliderCount}. " +
+                  $"Destroy in {_destroyDelay}s.");
 
-        // Step 4 — notify external systems (animation, VFX, loot, etc.)
+        // Step 5 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
+
+        // Step 6 — schedule destruction
+        Destroy(gameObject, _destroyDelay);
     }
 }
