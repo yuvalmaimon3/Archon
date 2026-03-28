@@ -92,15 +92,25 @@ public class DeathController : MonoBehaviour
             foreach (var col in _disableColliders)
                 if (col != null) { col.enabled = false; colliderCount++; }
 
+        // Step 5 — freeze physics: kinematic stops gravity and forces so the corpse
+        // stays exactly where it died. Rigidbody is kept available for future ragdoll/animation.
+        var rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
         Debug.Log($"[DeathController] '{name}' ghost state — " +
                   $"handlers:{handlers.Length} scripts:{scriptCount} " +
                   $"renderers:{rendererCount} colliders:{colliderCount}. " +
                   $"Destroy in {_destroyDelay}s.");
 
-        // Step 5 — notify external systems (animation, VFX, loot, etc.)
+        // Step 6 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
 
-        // Step 6 — schedule destruction
+        // Step 7 — schedule destruction
         Destroy(gameObject, _destroyDelay);
     }
 }
