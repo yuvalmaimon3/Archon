@@ -5,8 +5,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Editor tool that populates the "lab effects" scene with 5 professional particle effects.
-/// Run via menu: Effects > Create Lab Effects
+/// Populates the "lab effects" scene with 5 professional particle effects.
+///
+/// Auto-runs whenever the "lab effects" scene becomes active (first time only per scene).
+/// Can also be re-triggered manually via: Effects > Create Lab Effects
 ///
 /// Effects created:
 ///   1. FX_HellFire        – Multi-layer fire with embers, smoke, and warm point light
@@ -15,11 +17,55 @@ using UnityEngine.SceneManagement;
 ///   4. FX_Explosion       – Burst explosion with flash, fire, debris, and smoke
 ///   5. FX_FrostStorm      – Ice crystal storm with frost dust and falling snowflakes
 /// </summary>
+[InitializeOnLoad]
 public static class LabEffectsCreator
 {
     // ── Paths ─────────────────────────────────────────────────────────────────
     private const string ScenePath      = "Assets/lab effects.unity";
     private const string MatFolder      = "Assets/Materials/Effects";
+
+    // Key used to remember that effects were already built (survives recompiles, not sessions)
+    private const string CreatedKey     = "LabEffectsCreator_Built";
+
+    // ── Auto-run on load ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called once by Unity when scripts finish compiling.
+    /// Hooks into scene-open events and triggers an immediate check.
+    /// </summary>
+    static LabEffectsCreator()
+    {
+        // Listen for any scene being opened/activated
+        EditorSceneManager.sceneOpened += OnSceneOpened;
+
+        // Also run after a brief delay so it fires on the first editor startup
+        EditorApplication.delayCall += TryAutoCreate;
+    }
+
+    private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+    {
+        if (scene.path == ScenePath)
+            TryAutoCreate();
+    }
+
+    /// <summary>
+    /// Creates effects only if the lab scene is currently active and effects don't exist yet.
+    /// </summary>
+    private static void TryAutoCreate()
+    {
+        var active = SceneManager.GetActiveScene();
+
+        // Only act when the lab effects scene is open
+        if (active.path != ScenePath)
+            return;
+
+        // Skip if effects are already present in the scene
+        if (GameObject.Find("FX_HellFire") != null)
+            return;
+
+        Debug.Log("[LabEffects] Lab scene detected — building effects automatically...");
+        CreateLabEffects();
+    }
 
     // Professional VFX textures already in the project
     private const string TexFire        = "Assets/Vefects/Free Fire VFX/Textures/T_VFX_Fire_Mask_01.tga";
@@ -66,8 +112,12 @@ public static class LabEffectsCreator
 
     private static void EnsureSceneOpen()
     {
+        // Open the lab effects scene if it is not already the active scene
         if (SceneManager.GetActiveScene().path != ScenePath)
+        {
+            Debug.Log("[LabEffects] Opening lab effects scene...");
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        }
     }
 
     private static void EnsureFolder(string path)
