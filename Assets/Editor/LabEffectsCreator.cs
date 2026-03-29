@@ -19,7 +19,8 @@ public static class LabEffectsCreator
 {
     // ── Paths ─────────────────────────────────────────────────────────────────
     private const string ScenePath      = "Assets/lab effects.unity";
-    private const string MatFolder      = "Assets/Materials/Effects";
+    /// <summary>Effect materials live under Assets/Effects/Materials (see also Prefabs/Scenes siblings).</summary>
+    private const string MatFolder      = "Assets/Effects/Materials";
 
     // Professional VFX textures already in the project
     private const string TexFire        = "Assets/Vefects/Free Fire VFX/Textures/T_VFX_Fire_Mask_01.tga";
@@ -39,7 +40,7 @@ public static class LabEffectsCreator
     public static void CreateLabEffects()
     {
         EnsureSceneOpen();
-        EnsureFolder("Assets/Materials");
+        EnsureFolder("Assets/Effects");
         EnsureFolder(MatFolder);
 
         // Remove any previously created effects so the menu item is idempotent
