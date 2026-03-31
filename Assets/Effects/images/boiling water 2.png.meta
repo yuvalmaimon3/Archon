@@ -113,10 +113,10 @@ TextureImporter:
       name: boiling water 2_0
       rect:
         serializedVersion: 2
-        x: 898
-        y: 250
-        width: 141
-        height: 144
+        x: 800
+        y: 357
+        width: 181
+        height: 178
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,8 +125,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6e2c92fb16aa27d4ca5d1f895c33b833
-      internalID: -1140265818
+      spriteID: 004f49262490fe848be950933f7be761
+      internalID: -832525175
       vertices: []
       indices: 
       edges: []
@@ -135,10 +135,10 @@ TextureImporter:
       name: boiling water 2_1
       rect:
         serializedVersion: 2
-        x: 1071
-        y: 243
-        width: 147
-        height: 150
+        x: 1006
+        y: 345
+        width: 208
+        height: 173
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -147,8 +147,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 201eb8a841b3f2740bb3ada85baae8ba
-      internalID: -1338804485
+      spriteID: c995a39410f5651479c1d6f4fc872285
+      internalID: 763207241
       vertices: []
       indices: 
       edges: []
@@ -157,10 +157,10 @@ TextureImporter:
       name: boiling water 2_2
       rect:
         serializedVersion: 2
-        x: 1248
-        y: 244
-        width: 149
-        height: 154
+        x: 1267
+        y: 353
+        width: 191
+        height: 173
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -169,8 +169,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 054549555d6db92469e74aca3486cd3f
-      internalID: 217598184
+      spriteID: 724e40b539e410a488d60004c4b15799
+      internalID: -297306100
       vertices: []
       indices: 
       edges: []
@@ -179,10 +179,10 @@ TextureImporter:
       name: boiling water 2_3
       rect:
         serializedVersion: 2
-        x: 19
-        y: 127
-        width: 133
-        height: 125
+        x: 78
+        y: 172
+        width: 197
+        height: 166
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -191,8 +191,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a2ff0c107f6c8604997f8714cd7a9950
-      internalID: -1980261644
+      spriteID: be54b7ee2ec4d5d42bef0bd055488be2
+      internalID: -341521782
       vertices: []
       indices: 
       edges: []
@@ -201,10 +201,10 @@ TextureImporter:
       name: boiling water 2_4
       rect:
         serializedVersion: 2
-        x: 186
-        y: 121
-        width: 133
-        height: 137
+        x: 322
+        y: 172
+        width: 176
+        height: 173
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -213,8 +213,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5df51b063051ae74d8aaeb6cf8e1dbb0
-      internalID: -1941441164
+      spriteID: 9d351af3b5789f441a2b34be968151ed
+      internalID: -112799662
       vertices: []
       indices: 
       edges: []
@@ -223,10 +223,10 @@ TextureImporter:
       name: boiling water 2_5
       rect:
         serializedVersion: 2
-        x: 368
-        y: 130
-        width: 135
-        height: 129
+        x: 535
+        y: 186
+        width: 198
+        height: 172
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -235,8 +235,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 69bb7401ded3e384596f431d39ad29b5
-      internalID: 1353018441
+      spriteID: cadbeef1b6f5d864d872d24281d38c72
+      internalID: -1017694282
       vertices: []
       indices: 
       edges: []
@@ -245,10 +245,10 @@ TextureImporter:
       name: boiling water 2_6
       rect:
         serializedVersion: 2
-        x: 539
-        y: 122
-        width: 139
-        height: 131
+        x: 785
+        y: 175
+        width: 176
+        height: 165
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -257,8 +257,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d3d45a75acdf5da45a4c191c459d47fc
-      internalID: -672104258
+      spriteID: 28a0f908c49c5d94989bf129e9020fa2
+      internalID: -821423499
       vertices: []
       indices: 
       edges: []
@@ -267,10 +267,10 @@ TextureImporter:
       name: boiling water 2_7
       rect:
         serializedVersion: 2
-        x: 711
-        y: 137
-        width: 135
-        height: 108
+        x: 1016
+        y: 181
+        width: 201
+        height: 157
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -279,52 +279,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 02d5268314488204f931b09e8147be88
-      internalID: -864458286
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: boiling water 2_8
-      rect:
-        serializedVersion: 2
-        x: 903
-        y: 119
-        width: 134
-        height: 116
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 05bcbc144f41dde4cb2fc7eac912130e
-      internalID: 966978964
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: boiling water 2_9
-      rect:
-        serializedVersion: 2
-        x: 1081
-        y: 126
-        width: 130
-        height: 113
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: b2fd333e48b5bfa41a8b145a26e01988
-      internalID: 875142100
+      spriteID: 7e11586d212f58d4db0d7df0f42c7411
+      internalID: -2047084473
       vertices: []
       indices: 
       edges: []
@@ -333,7 +289,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b70f68f1f8f5cc74698d53e85f5c2eed
+    spriteID: 9b31b8c0be640674faba51d8cc95f09f
     internalID: 0
     vertices: []
     indices: 
@@ -343,16 +299,14 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      boiling water 2_0: -1140265818
-      boiling water 2_1: -1338804485
-      boiling water 2_2: 217598184
-      boiling water 2_3: -1980261644
-      boiling water 2_4: -1941441164
-      boiling water 2_5: 1353018441
-      boiling water 2_6: -672104258
-      boiling water 2_7: -864458286
-      boiling water 2_8: 966978964
-      boiling water 2_9: 875142100
+      boiling water 2_0: -832525175
+      boiling water 2_1: 763207241
+      boiling water 2_2: -297306100
+      boiling water 2_3: -341521782
+      boiling water 2_4: -112799662
+      boiling water 2_5: -1017694282
+      boiling water 2_6: -821423499
+      boiling water 2_7: -2047084473
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
