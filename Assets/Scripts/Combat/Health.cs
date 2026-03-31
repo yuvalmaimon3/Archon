@@ -132,6 +132,23 @@ public class Health : MonoBehaviour, IDamageable
         OnDamaged?.Invoke(_currentHealth, maxHealth);
     }
 
+    // ── Test utilities ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resets health to full and clears the dead flag.
+    /// Used by TestEnemyResetter in the TestReactions scene to allow continuous damage testing.
+    /// Not intended for production gameplay — use a proper respawn/revival system there.
+    /// </summary>
+    public void ResetHealth()
+    {
+        _currentHealth = maxHealth;
+        IsDead = false;
+
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+
+        Debug.Log($"[Health] {gameObject.name} — health reset to {maxHealth}.");
+    }
+
     // ── Private ──────────────────────────────────────────────────────────────
 
     /// <summary>
