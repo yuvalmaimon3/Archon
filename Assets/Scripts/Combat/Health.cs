@@ -68,6 +68,11 @@ public class Health : MonoBehaviour, IDamageable
     /// <summary>
     /// Applies damage and updates health state.
     /// Ignores incoming hits if already dead — prevents double-death events.
+    ///
+    /// Reaction suppression: if this hit carries an element that would trigger a reaction,
+    /// the direct attack damage is NOT applied. ReactionDamageHandler will apply x2 damage
+    /// via a follow-up TakeDamage call (no element) once OnReactionTriggered fires.
+    /// This ensures the total damage is the reaction's value only — not attack + reaction.
     /// </summary>
     public void TakeDamage(DamageInfo damageInfo)
     {
@@ -75,21 +80,41 @@ public class Health : MonoBehaviour, IDamageable
         // multiple projectiles land on the same frame
         if (IsDead) return;
 
-        // Subtract damage and clamp to [0, MaxHealth]
-        _currentHealth = Mathf.Clamp(_currentHealth - damageInfo.Amount, 0, maxHealth);
+        bool hasElement = damageInfo.ElementApplication.Element != ElementType.None;
 
-        Debug.Log($"[Health] {gameObject.name} took {damageInfo.Amount} damage — " +
-                  $"{CurrentHealth}/{maxHealth} HP remaining.");
+        // Check BEFORE applying damage whether this element would trigger a reaction.
+        // If yes, suppress direct damage — ReactionDamageHandler handles it with x2 multiplier.
+        bool willReact = _elementStatus != null
+                         && hasElement
+                         && _elementStatus.WouldReact(damageInfo.ElementApplication.Element);
 
-        // Notify subscribers (health bar, hit flash, audio)
-        OnDamaged?.Invoke(CurrentHealth, maxHealth);
+        if (!willReact)
+        {
+            // Normal hit — apply damage directly
+            _currentHealth = Mathf.Clamp(_currentHealth - damageInfo.Amount, 0, maxHealth);
 
-        // Forward elemental data to ElementStatusController if present and the hit carries an element.
-        // Health does not own elemental state — it only passes the data along.
-        if (_elementStatus != null && damageInfo.ElementApplication.Element != ElementType.None)
-            _elementStatus.ApplyElement(damageInfo.ElementApplication);
+            Debug.Log($"[Health] {gameObject.name} took {damageInfo.Amount} damage — " +
+                      $"{CurrentHealth}/{maxHealth} HP remaining.");
 
-        if (CurrentHealth == 0)
+            // Notify subscribers (health bar, hit flash, audio)
+            OnDamaged?.Invoke(CurrentHealth, maxHealth);
+        }
+        else
+        {
+            // Reaction hit — direct damage is suppressed.
+            // ReactionDamageHandler will apply x2 damage after OnReactionTriggered fires.
+            Debug.Log($"[Health] {gameObject.name} — direct damage suppressed " +
+                      $"(reaction triggered, ReactionDamageHandler will apply x{damageInfo.Amount * 2}).");
+        }
+
+        // Forward element to ElementStatusController.
+        // Pass baseDamage so the ReactionResult carries it for damage calculation.
+        if (_elementStatus != null && hasElement)
+            _elementStatus.ApplyElement(damageInfo.ElementApplication, damageInfo.Amount);
+
+        // Guard with !IsDead — ReactionDamageHandler's TakeDamage (called synchronously
+        // inside ApplyElement above) may have already triggered death via Die().
+        if (!IsDead && CurrentHealth == 0)
             Die(damageInfo);
     }
 

@@ -47,10 +47,27 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     // ── IElementReceiver ─────────────────────────────────────────────────────
 
     /// <summary>
+    /// Returns true if applying the given element would trigger a reaction with the current element.
+    /// Does NOT modify state — used by Health to decide whether to suppress direct damage before
+    /// forwarding the element application.
+    /// </summary>
+    public bool WouldReact(ElementType incomingElement)
+    {
+        if (CurrentElement == ElementType.None || incomingElement == ElementType.None) return false;
+        // Strength value doesn't affect whether a reaction occurs, only outcome details
+        return ReactionResolver.Resolve(CurrentElement, CurrentStrength, incomingElement, 1f).HasReaction;
+    }
+
+    /// <summary>
     /// Applies a new element. Checks for a reaction first; applies the resolver's
     /// outcome rule if one exists, otherwise stores the incoming element directly.
+    ///
+    /// baseDamage — the raw damage of the attack that applied this element.
+    /// Attached to the ReactionResult so subscribers (e.g. ReactionDamageHandler)
+    /// can compute reaction damage without needing to reach back into the attack.
+    /// Pass 0 for pure element applications that carry no damage context.
     /// </summary>
-    public void ApplyElement(ElementApplication application)
+    public void ApplyElement(ElementApplication application, int baseDamage = 0)
     {
         ReactionResult result = ReactionResolver.Resolve(
             CurrentElement, CurrentStrength,
@@ -61,10 +78,13 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         {
             LastReaction = result.ReactionType;
 
+            // Attach the triggering attack's damage so reaction handlers can scale off it
+            result = result.WithBaseDamage(baseDamage);
+
             Debug.Log($"[ElementStatusController] {gameObject.name} — " +
                       $"reaction: {result.ReactionType} " +
                       $"({CurrentElement} + {application.Element}), " +
-                      $"outcome: {result.OutcomeType}");
+                      $"outcome: {result.OutcomeType}, baseDamage: {baseDamage}");
 
             ApplyOutcome(result, application);
 

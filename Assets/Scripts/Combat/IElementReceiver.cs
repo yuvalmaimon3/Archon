@@ -8,5 +8,10 @@ public interface IElementReceiver
     /// Apply an element to this receiver.
     /// </summary>
     /// <param name="application">The element data to apply.</param>
-    void ApplyElement(ElementApplication application);
+    /// <param name="baseDamage">
+    /// The raw damage of the attack that carried this element application.
+    /// Passed through to the ReactionResult so ReactionDamageHandler can compute
+    /// reaction damage (e.g. x2). Use 0 for pure element applications with no attack context.
+    /// </param>
+    void ApplyElement(ElementApplication application, int baseDamage = 0);
 }
