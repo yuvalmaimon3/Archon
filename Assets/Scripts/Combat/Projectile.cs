@@ -34,6 +34,12 @@ public class Projectile : NetworkBehaviour
     [Tooltip("Read-only at runtime. Set by the spawner at initialization time.")]
     [SerializeField] private string _targetTag;
 
+    [Tooltip("Element this projectile carries. Read-only at runtime — set by the spawner.")]
+    [SerializeField]
+    #pragma warning disable IDE0052 // Inspector-only display field — read by Unity, not by C# code
+    private ElementType _displayElementType;
+    #pragma warning restore IDE0052
+
     // ── Runtime state ────────────────────────────────────────────────────────
 
     private int                _damage;
@@ -96,14 +102,15 @@ public class Projectile : NetworkBehaviour
                                      ElementType elementType, float elementStrength,
                                      string targetTag)
     {
-        _isNetworked        = true;
-        _source             = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
-        _damage             = damage;
-        _direction          = direction.normalized;
-        _speed              = speed;
-        _elementApplication = new ElementApplication(elementType, elementStrength, _source);
-        _targetTag          = targetTag;
-        _isInitialized      = true;
+        _isNetworked          = true;
+        _source               = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
+        _damage               = damage;
+        _direction            = direction.normalized;
+        _speed                = speed;
+        _elementApplication   = new ElementApplication(elementType, elementStrength, _source);
+        _targetTag            = targetTag;
+        _displayElementType   = elementType;
+        _isInitialized        = true;
 
         Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
                   $"element:{elementType}, lifetime:{lifetime}s");
@@ -119,14 +126,15 @@ public class Projectile : NetworkBehaviour
     public void Initialize(int damage, GameObject source, Vector3 direction, float speed,
                            ElementApplication elementApplication, string targetTag)
     {
-        _isNetworked        = false;
-        _damage             = damage;
-        _source             = source;
-        _direction          = direction.normalized;
-        _speed              = speed;
-        _elementApplication = elementApplication;
-        _targetTag          = targetTag;
-        _isInitialized      = true;
+        _isNetworked          = false;
+        _damage               = damage;
+        _source               = source;
+        _direction            = direction.normalized;
+        _speed                = speed;
+        _elementApplication   = elementApplication;
+        _targetTag            = targetTag;
+        _displayElementType   = elementApplication.Element;
+        _isInitialized        = true;
 
         // Standalone mode: manage lifetime with a local Destroy.
         Destroy(gameObject, lifetime);

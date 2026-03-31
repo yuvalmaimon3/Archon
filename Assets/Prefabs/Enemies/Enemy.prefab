@@ -363,7 +363,7 @@ MonoBehaviour:
   reactionVFXEntries:
   - ReactionType: 3
     VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
-  - ReactionType: 1
+  - ReactionType: 2
     VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
