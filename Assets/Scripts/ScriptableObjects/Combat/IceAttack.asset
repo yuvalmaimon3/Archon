@@ -15,7 +15,7 @@ MonoBehaviour:
   attackId: IceAttack
   attackType: 0
   damage: 15
-  cooldown: 0.5
+  cooldown: 2
   range: 100
   projectilePrefab: {fileID: 6358910555131766176, guid: 166679ba35b071f42b20b309b63a6419, type: 3}
   projectileSpeed: 8
