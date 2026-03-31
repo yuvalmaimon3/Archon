@@ -364,6 +364,7 @@ MonoBehaviour:
   - ReactionType: 0
     VFXPrefab: {fileID: 0}
   spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &3171774790997684177
 GameObject:
   m_ObjectHideFlags: 0
