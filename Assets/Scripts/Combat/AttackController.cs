@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -12,6 +13,14 @@ public class AttackController : MonoBehaviour
     [Header("Attack")]
     [Tooltip("The attack this controller manages. Assign an AttackDefinition asset here.")]
     [SerializeField] private AttackDefinition attackDefinition;
+
+    // ── Events ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fired immediately after an attack is used and the cooldown begins.
+    /// Subscribe here to react to each shot (e.g. cycling to the next attack definition).
+    /// </summary>
+    public event Action OnAttackUsed;
 
     // Tracks when the next attack is allowed.
     // Using a timestamp (Time.time) avoids a decrement loop in Update.
@@ -69,5 +78,7 @@ public class AttackController : MonoBehaviour
 
         Debug.Log($"[AttackController] {gameObject.name} used '{attackDefinition.AttackId}'. " +
                   $"Next attack available in {attackDefinition.Cooldown:F2}s.");
+
+        OnAttackUsed?.Invoke();
     }
 }

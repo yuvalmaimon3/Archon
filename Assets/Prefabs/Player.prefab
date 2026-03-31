@@ -210,7 +210,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3163163228
+  GlobalObjectIdHash: 1946691229
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -503,7 +503,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  hostAttackOverride: {fileID: 11400000, guid: e50c8e0f3dee1b84098720a0adfe9e38, type: 2}
+  attackCycle:
+  - {fileID: 11400000, guid: e50c8e0f3dee1b84098720a0adfe9e38, type: 2}
+  - {fileID: 11400000, guid: 894190fa62fd54249a8d0a27085ee3db, type: 2}
   attackController: {fileID: 5287284379114541691}
 --- !u!1 &8785919000542360750
 GameObject:
