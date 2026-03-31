@@ -5,7 +5,10 @@
 public enum ReactionType
 {
     None,
-    Vaporize, // Fire + Water
-    Freeze,   // Water + Ice
-    Melt      // Fire + Ice
+    Frozen,       // Water + Ice
+    Boiling,      // Water + Fire
+    ThermalShock, // Ice + Fire
+    Arc,          // Water + Lightning
+    Crack,        // Ice + Lightning
+    Plasma,       // Fire + Lightning
 }
