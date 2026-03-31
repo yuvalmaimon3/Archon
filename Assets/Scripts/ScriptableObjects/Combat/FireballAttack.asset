@@ -15,7 +15,7 @@ MonoBehaviour:
   attackId: FireballAttack
   attackType: 0
   damage: 15
-  cooldown: 1.2
+  cooldown: 0.5
   range: 100
   projectilePrefab: {fileID: 304679339213176376, guid: 9257db312e6748145b17bbb6e8c7e4bf, type: 3}
   projectileSpeed: 8
