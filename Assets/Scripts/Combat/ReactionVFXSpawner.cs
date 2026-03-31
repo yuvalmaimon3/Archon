@@ -76,13 +76,13 @@ public class ReactionVFXSpawner : MonoBehaviour
         Vector3 center  = transform.position + Vector3.up * spawnHeightOffset;
         Vector3 forward = transform.forward;
 
-        // Front copy — faces away from the entity's front
+        // Front copy — parented to this entity so it moves with it
         Vector3 frontPos = center + forward * spawnDepthOffset;
-        Instantiate(prefab, frontPos, Quaternion.LookRotation(forward));
+        Instantiate(prefab, frontPos, Quaternion.LookRotation(forward), transform);
 
-        // Back copy — faces away from the entity's back
+        // Back copy — parented to this entity so it moves with it
         Vector3 backPos = center - forward * spawnDepthOffset;
-        Instantiate(prefab, backPos, Quaternion.LookRotation(-forward));
+        Instantiate(prefab, backPos, Quaternion.LookRotation(-forward), transform);
 
         Debug.Log($"[ReactionVFXSpawner] {gameObject.name} — " +
                   $"spawned {result.ReactionType} VFX (front: {frontPos}, back: {backPos}).");
