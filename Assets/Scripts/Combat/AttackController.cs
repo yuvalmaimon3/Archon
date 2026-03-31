@@ -57,13 +57,17 @@ public class AttackController : MonoBehaviour
 
     /// <summary>
     /// Replaces the current attack definition at runtime.
-    /// Used by systems like HostAttackOverride to swap attacks dynamically.
+    /// resetCooldown: true (default) lets the new attack fire immediately — use when swapping
+    /// attacks as an upgrade or game-start override.
+    /// resetCooldown: false preserves the running cooldown — use when cycling attacks mid-combat
+    /// so the swap itself doesn't grant an extra free shot.
     /// </summary>
-    public void SetAttackDefinition(AttackDefinition newDefinition)
+    public void SetAttackDefinition(AttackDefinition newDefinition, bool resetCooldown = true)
     {
         attackDefinition = newDefinition;
-        _nextAttackTime = 0f; // Reset cooldown so the new attack can fire immediately
-        Debug.Log($"[AttackController] {gameObject.name} attack changed to '{newDefinition?.AttackId ?? "null"}'.");
+        if (resetCooldown) _nextAttackTime = 0f;
+        Debug.Log($"[AttackController] {gameObject.name} attack changed to '{newDefinition?.AttackId ?? "null"}'" +
+                  $"{(resetCooldown ? " (cooldown reset)" : " (cooldown preserved)")}.");
     }
 
     /// <summary>

@@ -54,8 +54,10 @@ public class HostAttackOverride : NetworkBehaviour
         _isActive = true;
         _currentIndex = 0;
 
-        // Apply the first attack immediately
-        ApplyCurrent();
+        // Apply the first attack — reset cooldown so the player can fire right away on spawn
+        attackController.SetAttackDefinition(attackCycle[0], resetCooldown: true);
+
+        Debug.Log($"[HostAttackOverride] First attack: '{attackCycle[0].AttackId}'.");
 
         // Advance to the next attack after each shot
         attackController.OnAttackUsed += AdvanceToNext;
@@ -87,7 +89,9 @@ public class HostAttackOverride : NetworkBehaviour
     private void ApplyCurrent()
     {
         AttackDefinition next = attackCycle[_currentIndex];
-        attackController.SetAttackDefinition(next);
+        // Preserve the cooldown — cycling should not grant a free instant shot.
+        // Only the very first call (from OnNetworkSpawn) passes resetCooldown: true (default).
+        attackController.SetAttackDefinition(next, resetCooldown: false);
 
         Debug.Log($"[HostAttackOverride] Next attack: '{next?.AttackId ?? "null"}' " +
                   $"(index {_currentIndex}/{attackCycle.Length - 1}).");
