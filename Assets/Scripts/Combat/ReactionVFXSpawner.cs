@@ -5,35 +5,36 @@ using UnityEngine;
 /// Spawns a visual effect prefab when an elemental reaction is triggered on this entity.
 ///
 /// Each ReactionType maps to a separate VFX prefab assigned in the Inspector.
-/// The spawned prefab is expected to auto-destroy itself (e.g. via a ParticleSystem
-/// or an Animator that calls Destroy on its last frame).
+/// Spawns one copy in front and one behind the entity so the effect wraps the model.
+/// The spawned prefab must have a ReactionEffectAutoDestroy component (or equivalent)
+/// to clean itself up.
 ///
 /// Attach to any entity that has an ElementStatusController.
 /// </summary>
 [RequireComponent(typeof(ElementStatusController))]
 public class ReactionVFXSpawner : MonoBehaviour
 {
-    /// <summary>
-    /// Maps a single reaction type to its visual effect prefab.
-    /// </summary>
+    /// <summary>Maps a single reaction type to its visual effect prefab.</summary>
     [Serializable]
     public struct ReactionVFXEntry
     {
         [Tooltip("The reaction type this entry handles.")]
         public ReactionType ReactionType;
 
-        [Tooltip("Prefab to spawn when this reaction triggers. Should auto-destroy itself.")]
+        [Tooltip("Prefab to spawn when this reaction triggers. Must auto-destroy itself.")]
         public GameObject VFXPrefab;
     }
 
     [Header("Reaction VFX")]
-    [Tooltip("Assign one entry per reaction type you want to show a VFX for. " +
-             "Reactions with no entry here will trigger silently.")]
+    [Tooltip("Assign one entry per reaction type. Reactions with no entry trigger silently.")]
     [SerializeField] private ReactionVFXEntry[] reactionVFXEntries;
 
-    [Tooltip("Vertical offset above the entity's pivot to spawn the VFX. " +
-             "Adjust so the effect appears centered on the model.")]
+    [Header("Spawn Placement")]
+    [Tooltip("Vertical offset above the entity's pivot so the effect sits on the model.")]
     [SerializeField] private float spawnHeightOffset = 1f;
+
+    [Tooltip("Distance in front of and behind the entity where the two copies are placed.")]
+    [SerializeField] private float spawnDepthOffset = 0.5f;
 
     // ── Private ──────────────────────────────────────────────────────────────
 
@@ -59,7 +60,8 @@ public class ReactionVFXSpawner : MonoBehaviour
     // ── Reaction handling ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Finds the VFX entry for the triggered reaction and spawns it at this entity's position.
+    /// Spawns two VFX copies — one in front, one behind the entity —
+    /// facing outward from the entity's forward direction.
     /// </summary>
     private void HandleReaction(ReactionResult result)
     {
@@ -71,16 +73,22 @@ public class ReactionVFXSpawner : MonoBehaviour
             return;
         }
 
-        Vector3 spawnPosition = transform.position + Vector3.up * spawnHeightOffset;
-        Instantiate(prefab, spawnPosition, Quaternion.identity);
+        Vector3 center  = transform.position + Vector3.up * spawnHeightOffset;
+        Vector3 forward = transform.forward;
+
+        // Front copy — faces away from the entity's front
+        Vector3 frontPos = center + forward * spawnDepthOffset;
+        Instantiate(prefab, frontPos, Quaternion.LookRotation(forward));
+
+        // Back copy — faces away from the entity's back
+        Vector3 backPos = center - forward * spawnDepthOffset;
+        Instantiate(prefab, backPos, Quaternion.LookRotation(-forward));
 
         Debug.Log($"[ReactionVFXSpawner] {gameObject.name} — " +
-                  $"spawned {result.ReactionType} VFX at {spawnPosition}.");
+                  $"spawned {result.ReactionType} VFX (front: {frontPos}, back: {backPos}).");
     }
 
-    /// <summary>
-    /// Returns the VFX prefab assigned to the given reaction type, or null if none is set.
-    /// </summary>
+    /// <summary>Returns the VFX prefab for the given reaction, or null if none assigned.</summary>
     private GameObject FindPrefab(ReactionType reactionType)
     {
         foreach (ReactionVFXEntry entry in reactionVFXEntries)
