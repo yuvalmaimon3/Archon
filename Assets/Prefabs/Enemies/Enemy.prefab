@@ -297,8 +297,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3660198821
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 3470725160
+  InScenePlacedSourceGlobalObjectIdHash: 3660198821
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -361,8 +361,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   reactionVFXEntries:
-  - ReactionType: 0
-    VFXPrefab: {fileID: 0}
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &3171774790997684177
