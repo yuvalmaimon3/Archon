@@ -307,6 +307,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &265673087
@@ -910,6 +912,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &847581997
@@ -1233,6 +1237,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &924277124
@@ -1423,6 +1429,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &954722192
@@ -1613,6 +1621,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &979728454
@@ -1895,6 +1905,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1081563979
@@ -2085,6 +2097,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1090936170
@@ -2275,6 +2289,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1144472397
@@ -2515,6 +2531,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1151914804
@@ -2821,6 +2839,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1345597332
@@ -3293,6 +3313,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &1923338659
@@ -3516,6 +3538,8 @@ MonoBehaviour:
     VFXPrefab: {fileID: 1803705099382205920, guid: 541699dd0c409c741998c835fcb57b69, type: 3}
   - ReactionType: 6
     VFXPrefab: {fileID: 2571285197500178485, guid: c4f667f84b677264d96808ccde0921cc, type: 3}
+  - ReactionType: 4
+    VFXPrefab: {fileID: 8980709797453018055, guid: da442e70a7abb9045a30e32e1bcf564c, type: 3}
   spawnHeightOffset: 1
   spawnDepthOffset: 0.5
 --- !u!1 &2001623858
