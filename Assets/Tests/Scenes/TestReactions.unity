@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 20764326}
   - component: {fileID: 20764325}
   - component: {fileID: 20764324}
+  - component: {fileID: 20764331}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -285,6 +286,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 20764322}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &20764331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20764322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &265673087
 GameObject:
   m_ObjectHideFlags: 0
@@ -714,6 +734,7 @@ GameObject:
   - component: {fileID: 737281342}
   - component: {fileID: 737281341}
   - component: {fileID: 737281340}
+  - component: {fileID: 737281347}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -864,6 +885,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 737281338}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &737281347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 737281338}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &847581997
 GameObject:
   m_ObjectHideFlags: 0
@@ -1013,6 +1053,7 @@ GameObject:
   - component: {fileID: 913758553}
   - component: {fileID: 913758552}
   - component: {fileID: 913758551}
+  - component: {fileID: 913758558}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -1163,6 +1204,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 913758549}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &913758558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 913758549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &924277124
 GameObject:
   m_ObjectHideFlags: 0
@@ -1179,6 +1239,7 @@ GameObject:
   - component: {fileID: 924277128}
   - component: {fileID: 924277127}
   - component: {fileID: 924277126}
+  - component: {fileID: 924277133}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -1329,6 +1390,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 924277124}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &924277133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 924277124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &954722192
 GameObject:
   m_ObjectHideFlags: 0
@@ -1345,6 +1425,7 @@ GameObject:
   - component: {fileID: 954722196}
   - component: {fileID: 954722195}
   - component: {fileID: 954722194}
+  - component: {fileID: 954722201}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -1495,6 +1576,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 954722192}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &954722201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 954722192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &979728454
 GameObject:
   m_ObjectHideFlags: 0
@@ -1603,6 +1703,7 @@ GameObject:
   - component: {fileID: 1074122521}
   - component: {fileID: 1074122520}
   - component: {fileID: 1074122519}
+  - component: {fileID: 1074122526}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -1753,6 +1854,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1074122517}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1074122526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074122517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1081563979
 GameObject:
   m_ObjectHideFlags: 0
@@ -1769,6 +1889,7 @@ GameObject:
   - component: {fileID: 1081563983}
   - component: {fileID: 1081563982}
   - component: {fileID: 1081563981}
+  - component: {fileID: 1081563988}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -1919,6 +2040,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1081563979}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1081563988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1081563979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1090936170
 GameObject:
   m_ObjectHideFlags: 0
@@ -1935,6 +2075,7 @@ GameObject:
   - component: {fileID: 1090936174}
   - component: {fileID: 1090936173}
   - component: {fileID: 1090936172}
+  - component: {fileID: 1090936179}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -2085,6 +2226,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1090936170}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1090936179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1090936170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1144472397
 GameObject:
   m_ObjectHideFlags: 0
@@ -2151,6 +2311,7 @@ GameObject:
   - component: {fileID: 1149496190}
   - component: {fileID: 1149496189}
   - component: {fileID: 1149496188}
+  - component: {fileID: 1149496195}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -2301,6 +2462,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1149496186}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1149496195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1149496186}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1151914804
 GameObject:
   m_ObjectHideFlags: 0
@@ -2433,6 +2613,7 @@ GameObject:
   - component: {fileID: 1319887115}
   - component: {fileID: 1319887114}
   - component: {fileID: 1319887113}
+  - component: {fileID: 1319887120}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -2583,6 +2764,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1319887111}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1319887120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1319887111}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1345597332
 GameObject:
   m_ObjectHideFlags: 0
@@ -2881,6 +3081,7 @@ GameObject:
   - component: {fileID: 1914634952}
   - component: {fileID: 1914634951}
   - component: {fileID: 1914634950}
+  - component: {fileID: 1914634957}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -3031,6 +3232,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1914634948}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1914634957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1914634948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &1923338659
 GameObject:
   m_ObjectHideFlags: 0
@@ -3080,6 +3300,7 @@ GameObject:
   - component: {fileID: 1993983097}
   - component: {fileID: 1993983096}
   - component: {fileID: 1993983095}
+  - component: {fileID: 1993983102}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -3230,6 +3451,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1993983093}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1993983102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1993983093}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa90b446b74604e499defd59e73bb3b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reactionVFXEntries:
+  - ReactionType: 3
+    VFXPrefab: {fileID: 5335231108694507030, guid: 36c8d535b35e2bd4889b1f78455588c4, type: 3}
+  - ReactionType: 2
+    VFXPrefab: {fileID: 7060292577779950171, guid: 910495f5e5d8c5744b44f3891b517e6b, type: 3}
+  spawnHeightOffset: 1
+  spawnDepthOffset: 0.5
 --- !u!1 &2001623858
 GameObject:
   m_ObjectHideFlags: 0
