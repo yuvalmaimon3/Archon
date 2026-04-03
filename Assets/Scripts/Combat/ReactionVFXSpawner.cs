@@ -60,16 +60,28 @@ public class ReactionVFXSpawner : MonoBehaviour
     // ── Reaction handling ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Spawns two VFX copies — one in front, one behind the entity —
-    /// facing outward from the entity's forward direction.
+    /// Called by the local OnReactionTriggered event (server / standalone).
+    /// Delegates to SpawnVFX so the spawning logic lives in one place.
     /// </summary>
     private void HandleReaction(ReactionResult result)
     {
-        GameObject prefab = FindPrefab(result.ReactionType);
+        SpawnVFX(result.ReactionType);
+    }
+
+    /// <summary>
+    /// Spawns two VFX copies — one in front, one behind the entity —
+    /// facing outward from the entity's forward direction.
+    ///
+    /// Public so that ReactionVFXNetworkSync can call this on clients
+    /// after receiving the ClientRpc broadcast from the server.
+    /// </summary>
+    public void SpawnVFX(ReactionType reactionType)
+    {
+        GameObject prefab = FindPrefab(reactionType);
         if (prefab == null)
         {
             Debug.Log($"[ReactionVFXSpawner] {gameObject.name} — " +
-                      $"no VFX assigned for {result.ReactionType}, skipping.");
+                      $"no VFX assigned for {reactionType}, skipping.");
             return;
         }
 
@@ -85,7 +97,7 @@ public class ReactionVFXSpawner : MonoBehaviour
         Instantiate(prefab, backPos, Quaternion.LookRotation(-forward), transform);
 
         Debug.Log($"[ReactionVFXSpawner] {gameObject.name} — " +
-                  $"spawned {result.ReactionType} VFX (front: {frontPos}, back: {backPos}).");
+                  $"spawned {reactionType} VFX (front: {frontPos}, back: {backPos}).");
     }
 
     /// <summary>Returns the VFX prefab for the given reaction, or null if none assigned.</summary>

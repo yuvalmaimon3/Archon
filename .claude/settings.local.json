@@ -7,5 +7,8 @@
       "d:\\Unity2026\\Arcon\\Assets\\Scripts",
       "d:\\Unity2026\\Arcon\\Assets"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "ai-game-developer"
+  ]
 }
