@@ -97,10 +97,10 @@ GameObject:
   - component: {fileID: 7430671809322678049}
   - component: {fileID: 3331888244263542665}
   - component: {fileID: 6399046024677208543}
-  - component: {fileID: 7404246447621324190}
   - component: {fileID: 4020690392384999855}
   - component: {fileID: 6521787613198278761}
   - component: {fileID: 2445972830232588952}
+  - component: {fileID: 100101428103583609}
   m_Layer: 0
   m_Name: EnemyBase
   m_TagString: Enemy
@@ -344,22 +344,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &7404246447621324190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1898620670280942361}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0047ec9393f0e242b7aff7c54d6944e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  enemyData: {fileID: 0}
-  playerTag: Player
-  destinationUpdateInterval: 0.1
 --- !u!114 &4020690392384999855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,6 +395,21 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   maxKnockbackDuration: 0.5
   settleSpeedThreshold: 0.5
+--- !u!114 &100101428103583609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1898620670280942361}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8495b080b0cd38a4f89f65d0928e60d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  playerTag: Player
+  destinationUpdateInterval: 0.1
 --- !u!1 &3171774790997684177
 GameObject:
   m_ObjectHideFlags: 0
