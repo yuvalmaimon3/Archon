@@ -1,105 +1,148 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.AI;
 
-/// <summary>
-/// Server-authoritative enemy movement.
-/// Chases the nearest living player each frame and stops within attack range.
-///
-/// Responsibilities:
-///   - Find the nearest player with the configured tag
-///   - Move toward the player on the server using Rigidbody physics
-///   - Stop when within AttackRange (so EnemyCombatBrain can take over)
-///   - Face the movement direction
-///
-/// Works in tandem with EnemyCombatBrain:
-///   - Movement stops at AttackRange → brain detects range met → fires attack
-///
-/// Requires: Rigidbody (non-kinematic on server), EnemyData assigned via EnemyInitializer.
-/// </summary>
+// Server-authoritative enemy movement using NavMeshAgent.
+// Chases the nearest living player and stops when within attack range.
+//
+// Works with KnockbackHandler: when the enemy is knocked back,
+// this script pauses and lets KnockbackHandler take over Rigidbody physics.
+// Movement resumes automatically once the knockback ends.
+//
+// Requires: NavMeshAgent, Rigidbody (kinematic during normal movement),
+//           EnemyData assigned via EnemyInitializer.
+[RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Rigidbody))]
 public class EnemyMovement : NetworkBehaviour
 {
     [Header("Config")]
-    [Tooltip("Enemy stats asset. Assigned at runtime by EnemyInitializer, " +
-             "or set directly in the Inspector for standalone testing.")]
+    // Enemy stats asset — assigned at runtime by EnemyInitializer.
     [SerializeField] private EnemyData enemyData;
 
-    [Tooltip("Unity tag used to locate players.")]
+    // Unity tag used to locate players.
     [SerializeField] private string playerTag = "Player";
 
-    // Cached Rigidbody — resolved once in Awake.
-    private Rigidbody _rb;
+    // How often (seconds) to refresh the nav destination.
+    // Updating every frame is wasteful — 0.1s is smooth enough on mobile.
+    [SerializeField] private float destinationUpdateInterval = 0.1f;
 
-    // The current movement target. Re-evaluated every FixedUpdate on the server.
+    private NavMeshAgent   _agent;
+    private Rigidbody      _rb;
+    private KnockbackHandler _knockback;
+
     private Transform _target;
+    private float     _nextDestinationUpdate;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _rb = GetComponent<Rigidbody>();
+        _agent    = GetComponent<NavMeshAgent>();
+        _rb       = GetComponent<Rigidbody>();
+        _knockback = GetComponent<KnockbackHandler>();
+
+        // Rigidbody is kinematic during normal movement — NavMeshAgent owns the transform.
+        // KnockbackHandler will temporarily disable the agent and make it non-kinematic.
+        _rb.isKinematic    = true;
         _rb.freezeRotation = true;
+
+        // Agent rotation is handled manually so we can match NavMesh movement direction.
+        _agent.updateRotation = false;
+        _agent.updateUpAxis   = false;
     }
 
-    /// <summary>
-    /// Called by NGO when this object enters the network session.
-    /// Clients receive position via NetworkTransform — their Rigidbody stays kinematic.
-    /// </summary>
     public override void OnNetworkSpawn()
     {
+        // Only the server drives enemy movement.
+        // Clients receive position updates via NetworkTransform.
         if (!IsServer)
-            _rb.isKinematic = true;
+        {
+            _agent.enabled = false;
+            return;
+        }
 
-        Debug.Log($"[EnemyMovement] '{name}' spawned — IsServer:{IsServer} Kinematic:{_rb.isKinematic}");
+        Debug.Log($"[EnemyMovement] '{name}' spawned on server.");
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        // Only the server drives physics for enemies.
         if (!IsServer) return;
         if (enemyData == null) return;
+
+        // Pause movement while knocked back — KnockbackHandler is in control.
+        if (_knockback != null && _knockback.IsKnockedBack) return;
 
         _target = FindNearestPlayer();
 
         if (_target == null)
         {
-            // No players alive — come to a stop.
-            StopMovement();
+            _agent.ResetPath();
             return;
         }
 
-        float distanceToTarget = Vector3.Distance(transform.position, _target.position);
+        float distance = Vector3.Distance(transform.position, _target.position);
 
-        if (distanceToTarget <= enemyData.AttackRange)
+        if (distance <= enemyData.AttackRange)
         {
-            // Within attack range — stop and let EnemyCombatBrain handle the attack.
-            StopMovement();
+            // In attack range — stop moving, face the target.
+            _agent.ResetPath();
+            FaceTarget(_target.position);
         }
         else
         {
-            MoveToward(_target.position);
+            // Update destination on interval to save CPU.
+            if (Time.time >= _nextDestinationUpdate)
+            {
+                _agent.SetDestination(_target.position);
+                _nextDestinationUpdate = Time.time + destinationUpdateInterval;
+            }
+
+            // Face movement direction while chasing.
+            if (_agent.velocity.sqrMagnitude > 0.01f)
+                FaceTarget(transform.position + _agent.velocity);
         }
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Assigns the EnemyData that drives movement speed and attack range.
-    /// Called by EnemyInitializer after the enemy spawns.
-    /// </summary>
+    // Called by EnemyInitializer after spawn to apply EnemyData stats to the agent.
     public void Initialize(EnemyData data)
     {
         enemyData = data;
-        Debug.Log($"[EnemyMovement] '{name}' initialized with data '{data.EnemyName}'.");
+
+        _agent.speed           = data.MoveSpeed;
+        _agent.stoppingDistance = data.AttackRange;
+
+        Debug.Log($"[EnemyMovement] '{name}' initialized — speed:{data.MoveSpeed} stoppingDist:{data.AttackRange}");
+    }
+
+    // Disables the NavMeshAgent so KnockbackHandler can apply Rigidbody forces.
+    // Called by KnockbackHandler when knockback starts.
+    public void DisableAgentForKnockback()
+    {
+        _agent.ResetPath();
+        _agent.enabled  = false;
+        _rb.isKinematic = false;
+    }
+
+    // Re-enables the NavMeshAgent after knockback ends.
+    // Called by KnockbackHandler once the enemy settles.
+    public void ReEnableAgent()
+    {
+        _rb.isKinematic = true;
+        _rb.linearVelocity = Vector3.zero;
+
+        // Warp agent to current position so it re-snaps to the NavMesh correctly.
+        _agent.enabled = true;
+        _agent.Warp(transform.position);
+
+        Debug.Log($"[EnemyMovement] '{name}' agent re-enabled after knockback.");
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Scans all live players and returns the nearest Transform.
-    /// Dead players are excluded because DeathController changes their tag.
-    /// Returns null when no players exist.
-    /// </summary>
+    // Finds the nearest living player. Dead players are excluded because
+    // DeathController changes their tag away from playerTag.
     private Transform FindNearestPlayer()
     {
         GameObject[] players = GameObject.FindGameObjectsWithTag(playerTag);
@@ -121,36 +164,13 @@ public class EnemyMovement : NetworkBehaviour
         return nearest;
     }
 
-    /// <summary>
-    /// Moves the enemy toward the target position at the configured move speed.
-    /// Also rotates the enemy to face the movement direction.
-    /// </summary>
-    private void MoveToward(Vector3 targetPosition)
+    // Rotates the enemy to face a world-space position, ignoring Y axis.
+    private void FaceTarget(Vector3 targetPosition)
     {
-        // Flat direction — ignore Y so the enemy doesn't tilt up slopes
-        Vector3 direction = (targetPosition - transform.position);
+        Vector3 direction = targetPosition - transform.position;
         direction.y = 0f;
-        direction.Normalize();
+        if (direction.sqrMagnitude < 0.001f) return;
 
-        // Apply velocity — preserve Y for gravity
-        _rb.linearVelocity = new Vector3(
-            direction.x * enemyData.MoveSpeed,
-            _rb.linearVelocity.y,
-            direction.z * enemyData.MoveSpeed
-        );
-
-        // Rotate to face movement direction instantly.
-        // Replace with Quaternion.RotateTowards for a smooth turn if desired.
-        if (direction.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(direction);
-    }
-
-    /// <summary>
-    /// Zeroes out horizontal velocity so the enemy stops cleanly.
-    /// Preserves Y velocity so gravity still applies.
-    /// </summary>
-    private void StopMovement()
-    {
-        _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
+        transform.rotation = Quaternion.LookRotation(direction);
     }
 }
