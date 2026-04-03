@@ -167,14 +167,18 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     /// </summary>
     private bool ExecuteAttack(AttackDefinition def)
     {
+        // Pass the effective (level-scaled) damage from AttackController so the executor
+        // uses the correct value without mutating the shared AttackDefinition asset.
+        int scaledDamage = attackController.EffectiveDamage;
+
         switch (def.AttackType)
         {
             case AttackType.Projectile:
-                var projectile = ProjectileAttackExecutor.Execute(transform, GetAttackDirection(), def);
+                var projectile = ProjectileAttackExecutor.Execute(transform, GetAttackDirection(), def, scaledDamage);
                 return projectile != null;
 
             case AttackType.Melee:
-                MeleeAttackExecutor.Execute(transform, def);
+                MeleeAttackExecutor.Execute(transform, def, scaledDamage);
                 return true;
 
             case AttackType.Contact:

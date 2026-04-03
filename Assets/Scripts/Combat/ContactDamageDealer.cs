@@ -23,8 +23,13 @@ public class ContactDamageDealer : MonoBehaviour
     [Tooltip("Must be a Contact-type AttackDefinition.")]
     [SerializeField] private AttackDefinition attackDefinition;
 
-    /// <summary>The attack definition driving this dealer's damage and tick interval.</summary>
+    // The attack definition driving this dealer's damage and tick interval.
     public AttackDefinition AttackDefinition => attackDefinition;
+
+    // Level-scaled damage multiplier set by EnemyInitializer.
+    // Applied in ApplyDamageTo() so the shared AttackDefinition asset is never mutated.
+    // 1.0 by default = no scaling until EnemyInitializer provides a level.
+    private float _damageMultiplier = 1f;
 
     // ── Active contacts ──────────────────────────────────────────────────────
     // Maps each active target to the Time.time when it is next eligible for a tick.
@@ -33,6 +38,16 @@ public class ContactDamageDealer : MonoBehaviour
 
     // Cached element application — rebuilt in Awake so it is not reconstructed each tick
     private ElementApplication _elementApplication;
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
+    // Sets the damage multiplier applied on top of AttackDefinition.Damage each tick.
+    // Called by EnemyInitializer after computing scaled stats for the enemy's level.
+    public void SetDamageMultiplier(float multiplier)
+    {
+        _damageMultiplier = Mathf.Max(0f, multiplier);
+        Debug.Log($"[ContactDamageDealer] {gameObject.name} — damage multiplier set to {_damageMultiplier:F2}.");
+    }
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -135,8 +150,11 @@ public class ContactDamageDealer : MonoBehaviour
             ? (targetComponent.transform.position - transform.position).normalized
             : transform.forward;
 
+        // Apply level multiplier — base damage from asset × multiplier set by EnemyInitializer.
+        int finalDamage = Mathf.Max(0, Mathf.RoundToInt(attackDefinition.Damage * _damageMultiplier));
+
         var damageInfo = new DamageInfo(
-            amount:             attackDefinition.Damage,
+            amount:             finalDamage,
             source:             gameObject,
             hitPoint:           hitPoint,
             hitDirection:       hitDir,
@@ -146,6 +164,6 @@ public class ContactDamageDealer : MonoBehaviour
         target.TakeDamage(damageInfo);
 
         Debug.Log($"[ContactDamageDealer] {gameObject.name} — ticked '{(targetComponent != null ? targetComponent.gameObject.name : "unknown")}' " +
-                  $"for {attackDefinition.Damage} damage.");
+                  $"for {finalDamage} damage.");
     }
 }

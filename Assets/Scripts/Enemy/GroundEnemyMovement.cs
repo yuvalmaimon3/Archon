@@ -93,6 +93,13 @@ public class GroundEnemyMovement : EnemyMovementBase
         _agent.stoppingDistance = data.AttackRange;
     }
 
+    // Applies a level-scaled speed override to the NavMeshAgent.
+    // Called by EnemyInitializer after ComputeStats() to reflect level growth.
+    public override void SetMoveSpeed(float speed)
+    {
+        _agent.speed = Mathf.Max(0f, speed);
+    }
+
     // Disable agent and hand control to Rigidbody for physics-driven knockback.
     protected override void OnKnockbackStart()
     {

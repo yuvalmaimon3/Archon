@@ -14,13 +14,13 @@ public static class MeleeAttackExecutor
     // Reused across calls to avoid per-frame allocation from OverlapSphere
     private static readonly Collider[] _overlapBuffer = new Collider[32];
 
-    /// <summary>
-    /// Detects all IDamageable targets within the melee radius and applies damage to each.
-    /// The source object is always excluded. Each valid target is damaged exactly once.
-    /// </summary>
-    /// <param name="origin">Center of the hit sphere and the damage source reference.</param>
-    /// <param name="attackDefinition">Data asset that defines the attack stats and radius.</param>
-    public static void Execute(Transform origin, AttackDefinition attackDefinition)
+    // Detects all IDamageable targets within the melee radius and applies damage to each.
+    // The source object is always excluded. Each valid target is damaged exactly once.
+    //
+    // damageOverride: when >= 0, replaces attackDefinition.Damage — used by EnemyCombatBrain
+    // to apply level-scaled damage (AttackController.EffectiveDamage) without mutating
+    // the shared AttackDefinition ScriptableObject asset.
+    public static void Execute(Transform origin, AttackDefinition attackDefinition, int damageOverride = -1)
     {
         // ── Validation ───────────────────────────────────────────────────────
 
@@ -92,8 +92,12 @@ public static class MeleeAttackExecutor
                 ? (targetComponent.transform.position - origin.position).normalized
                 : origin.forward;
 
-            var damageInfo = new DamageInfo(
-                amount:             attackDefinition.Damage,
+            // Use the override if provided (level-scaled value from AttackController),
+        // otherwise fall back to the base value in the AttackDefinition asset.
+        int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
+
+        var damageInfo = new DamageInfo(
+                amount:             finalDamage,
                 source:             origin.gameObject,
                 hitPoint:           hitPoint,
                 hitDirection:       hitDir,

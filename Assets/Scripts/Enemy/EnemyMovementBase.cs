@@ -31,6 +31,12 @@ public abstract class EnemyMovementBase : NetworkBehaviour
         Debug.Log($"[{GetType().Name}] '{name}' initialized as '{data.EnemyName}'.");
     }
 
+    // Applies a level-scaled move speed after Initialize() has already run.
+    // Called by EnemyInitializer after computing scaled stats so subclasses
+    // can update their agent/controller without a full re-initialize.
+    // Subclasses override to update the appropriate speed field (e.g. NavMeshAgent.speed).
+    public virtual void SetMoveSpeed(float speed) { }
+
     // Called by KnockbackHandler when knockback starts.
     // Subclasses should suspend movement and hand off control to Rigidbody.
     public void StartKnockback()

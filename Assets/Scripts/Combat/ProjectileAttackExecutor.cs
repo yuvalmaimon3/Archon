@@ -9,14 +9,13 @@ using UnityEngine;
 /// </summary>
 public static class ProjectileAttackExecutor
 {
-    /// <summary>
-    /// Spawns a projectile at <paramref name="origin"/> and sends it in <paramref name="direction"/>.
-    /// Returns the spawned Projectile, or null if execution was blocked by a validation failure.
-    /// </summary>
-    /// <param name="origin">Spawn point and source transform (used as the damage source).</param>
-    /// <param name="direction">World-space direction the projectile travels (does not need to be normalized).</param>
-    /// <param name="attackDefinition">Data asset that defines the attack stats and prefab.</param>
-    public static Projectile Execute(Transform origin, Vector3 direction, AttackDefinition attackDefinition)
+    // Spawns a projectile at origin and sends it in direction.
+    // Returns the spawned Projectile, or null if execution was blocked by a validation failure.
+    //
+    // damageOverride: when >= 0, replaces attackDefinition.Damage — used by EnemyCombatBrain
+    // to apply level-scaled damage (AttackController.EffectiveDamage) without mutating
+    // the shared AttackDefinition ScriptableObject asset.
+    public static Projectile Execute(Transform origin, Vector3 direction, AttackDefinition attackDefinition, int damageOverride = -1)
     {
         // ── Validation ───────────────────────────────────────────────────────
 
@@ -68,8 +67,12 @@ public static class ProjectileAttackExecutor
             source:   origin.gameObject
         );
 
+        // Use the override if provided (level-scaled value from AttackController),
+        // otherwise fall back to the base value in the AttackDefinition asset.
+        int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
+
         projectile.Initialize(
-            damage:             attackDefinition.Damage,
+            damage:             finalDamage,
             source:             origin.gameObject,
             direction:          direction,
             speed:              attackDefinition.ProjectileSpeed,
