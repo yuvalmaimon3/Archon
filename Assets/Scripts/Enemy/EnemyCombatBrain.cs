@@ -178,10 +178,7 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
                 return true;
 
             case AttackType.Contact:
-                // Contact damage is applied automatically by ContactDamageDealer on this GameObject —
-                // the brain does not trigger it manually
-                Debug.LogWarning($"[EnemyCombatBrain] AttackType.Contact is managed by " +
-                                 $"ContactDamageDealer, not triggered by the brain.");
+                // Contact damage is driven by ContactDamageDealer, not the brain — nothing to do.
                 return false;
 
             default:

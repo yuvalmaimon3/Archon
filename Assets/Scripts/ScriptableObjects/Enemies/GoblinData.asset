@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7506deec82f0d874f8841d4d7c085870, type: 3}
   m_Name: GoblinData
   m_EditorClassIdentifier: 
-  enemyName: Enemy
+  enemyName: Goblin
   maxHealth: 50
   moveSpeed: 3
-  attackRange: 2
-  attackDefinition: {fileID: 0}
+  attackRange: 0.6
+  attackDefinition: {fileID: 11400000, guid: 459ddee24a3e8ae4ca870bda972b1cba, type: 2}
