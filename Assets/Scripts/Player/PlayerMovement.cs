@@ -80,8 +80,8 @@ public class PlayerMovement : NetworkBehaviour
             ApplyMovement(_inputDir);
 
         // Send input to the server so it can move this player for everyone.
-        // The host skips this inside MoveServerRpc (it already moved via ApplyMovement above).
-        if (IsSpawned)
+        // The host already moved via ApplyMovement above — skip the redundant RPC.
+        if (IsSpawned && !IsServer)
             MoveServerRpc(_inputDir);
     }
 

@@ -105,7 +105,7 @@ public class PlayerCombatBrain : NetworkBehaviour
                 return true;
 
             case AttackType.Melee:
-                MeleeAttackExecutor.Execute(transform, def);
+                MeleeAttackExecutor.Execute(transform, def, attackController.EffectiveDamage);
                 return true;
 
             case AttackType.Contact:
@@ -164,8 +164,9 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         // Send trajectory and stats to all clients so each can simulate locally.
         // The deterministic straight-line movement guarantees identical results everywhere.
+        // Use EffectiveDamage so any damage multipliers (buffs, scaling) are applied.
         projectile.InitializeClientRpc(
-            damage:          def.Damage,
+            damage:          attackController.EffectiveDamage,
             sourceRef:       NetworkObject,
             direction:       direction,
             speed:           def.ProjectileSpeed,
