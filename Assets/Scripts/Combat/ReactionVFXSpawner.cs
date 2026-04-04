@@ -103,6 +103,8 @@ public class ReactionVFXSpawner : MonoBehaviour
     /// <summary>Returns the VFX prefab for the given reaction, or null if none assigned.</summary>
     private GameObject FindPrefab(ReactionType reactionType)
     {
+        if (reactionVFXEntries == null) return null;
+
         foreach (ReactionVFXEntry entry in reactionVFXEntries)
         {
             if (entry.ReactionType == reactionType)
