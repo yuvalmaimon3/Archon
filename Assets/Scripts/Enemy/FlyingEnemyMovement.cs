@@ -21,6 +21,10 @@ public class FlyingEnemyMovement : EnemyMovementBase
     private Rigidbody _rb;
     private Transform _target;
 
+    // Level-scaled speed set by EnemyInitializer.SetMoveSpeed().
+    // Defaults to -1 (unset) so Update falls back to EnemyData.MoveSpeed until scaling is applied.
+    private float _scaledMoveSpeed = -1f;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -66,7 +70,15 @@ public class FlyingEnemyMovement : EnemyMovementBase
 
     protected override void OnInitialized(EnemyData data)
     {
-        // No agent to configure — speed is read directly from EnemyData in Update.
+        // No agent to configure — speed is applied via SetMoveSpeed() after this call.
+    }
+
+    // Stores the level-scaled move speed from EnemyInitializer.
+    // Without this override, the base no-op silently discards the scaled value
+    // and Update would always use the unscaled EnemyData.MoveSpeed.
+    public override void SetMoveSpeed(float speed)
+    {
+        _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 
     // On knockback start: make Rigidbody physical so forces can be applied.
@@ -95,14 +107,14 @@ public class FlyingEnemyMovement : EnemyMovementBase
         float targetY    = targetPosition.y + hoverHeight;
         Vector3 destination = new Vector3(targetPosition.x, targetY, targetPosition.z);
 
-        // Direction to destination (full 3D — flying enemies move up/down freely)
-        Vector3 direction = (destination - transform.position).normalized;
+        // Use level-scaled speed if set, otherwise fall back to base EnemyData speed.
+        float speed = _scaledMoveSpeed >= 0f ? _scaledMoveSpeed : EnemyData.MoveSpeed;
 
         // Move via transform — kinematic Rigidbody, no physics solver needed
         transform.position = Vector3.MoveTowards(
             transform.position,
             destination,
-            EnemyData.MoveSpeed * Time.deltaTime
+            speed * Time.deltaTime
         );
 
         // Face the player (ignore hover offset for rotation — looks more natural)

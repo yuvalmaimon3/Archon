@@ -42,6 +42,10 @@ public class WraithMovement : EnemyMovementBase
 
     private Rigidbody _rb;
 
+    // Level-scaled speed set by EnemyInitializer.SetMoveSpeed().
+    // Defaults to -1 (unset) so Update falls back to EnemyData.MoveSpeed until scaling is applied.
+    private float _scaledMoveSpeed = -1f;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -85,7 +89,7 @@ public class WraithMovement : EnemyMovementBase
         transform.position = Vector3.MoveTowards(
             transform.position,
             transform.position + move,
-            EnemyData.MoveSpeed * Time.deltaTime
+            (_scaledMoveSpeed >= 0f ? _scaledMoveSpeed : EnemyData.MoveSpeed) * Time.deltaTime
         );
 
         // Always face the player regardless of movement direction.
@@ -96,7 +100,15 @@ public class WraithMovement : EnemyMovementBase
 
     protected override void OnInitialized(EnemyData data)
     {
-        // Speed is read from EnemyData.MoveSpeed in Update — nothing to configure.
+        // Speed is applied via SetMoveSpeed() after this call.
+    }
+
+    // Stores the level-scaled move speed from EnemyInitializer.
+    // Without this override, the base no-op silently discards the scaled value
+    // and Update would always use the unscaled EnemyData.MoveSpeed.
+    public override void SetMoveSpeed(float speed)
+    {
+        _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 
     // Knockback: switch to physical mode so forces can be applied in 3D.

@@ -31,10 +31,6 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     [Tooltip("Unity tag used to locate the player when no target is assigned.")]
     [SerializeField] private string playerTag = "Player";
 
-    // Cached Health of the current target — checked each frame to detect when the player dies.
-    // Avoids GetComponent per frame; populated whenever a new target is assigned.
-    private Health _targetHealth;
-
     // Tracks the previously logged target to avoid spamming the console every frame.
     private Transform _lastLoggedTarget;
 
@@ -92,48 +88,27 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
 
     // ── Private ──────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Scans all live players and returns the nearest one's Transform.
-    /// Uses FindGameObjectsWithTag to support coop (multiple players) — dead players
-    /// are excluded automatically because DeathController changes their tag to "Untagged".
-    /// Returns null when no players exist yet (handles NGO late-join).
-    ///
-    /// Note: FindGameObjectsWithTag allocates each call — acceptable for a test scene.
-    /// Production builds should replace this with a centrally-managed player registry.
-    /// </summary>
+    // Finds nearest live player via shared PlayerFinder utility.
+    // Updates internal target reference and logs on change.
     private Transform FindNearestPlayer()
     {
-        GameObject[] players = GameObject.FindGameObjectsWithTag(playerTag);
-        if (players.Length == 0)
+        Transform nearest = PlayerFinder.FindNearest(transform.position, playerTag);
+
+        if (nearest == null)
         {
             SetTargetInternal(null);
-            return null;
         }
-
-        Transform nearest       = null;
-        float     nearestSqDist = float.MaxValue;
-
-        foreach (var p in players)
+        else if (nearest != target)
         {
-            float sqDist = (p.transform.position - transform.position).sqrMagnitude;
-            if (sqDist < nearestSqDist)
-            {
-                nearestSqDist = sqDist;
-                nearest       = p.transform;
-            }
-        }
-
-        // Cache Health whenever the target changes — avoids GetComponent every frame.
-        if (nearest != target)
             SetTargetInternal(nearest);
+        }
 
         // Log only on change to avoid console spam every frame.
         if (nearest != _lastLoggedTarget)
         {
             _lastLoggedTarget = nearest;
             if (nearest != null)
-                Debug.Log($"[EnemyCombatBrain] '{name}' targeting '{nearest.name}' " +
-                          $"at {Mathf.Sqrt(nearestSqDist):F1}m.");
+                Debug.Log($"[EnemyCombatBrain] '{name}' targeting '{nearest.name}'.");
             else
                 Debug.Log($"[EnemyCombatBrain] '{name}' — no players found.");
         }
@@ -146,8 +121,7 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
     /// </summary>
     private void SetTargetInternal(Transform newTarget)
     {
-        target        = newTarget;
-        _targetHealth = newTarget != null ? newTarget.GetComponent<Health>() : null;
+        target = newTarget;
     }
 
     /// <summary>

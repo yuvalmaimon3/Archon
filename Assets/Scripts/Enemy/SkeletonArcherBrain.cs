@@ -212,28 +212,10 @@ public class SkeletonArcherBrain : MonoBehaviour, IDeathHandler
             : preferredRange + 1f;
     }
 
-    // Finds the nearest live player using the player tag.
-    // Allocation from FindGameObjectsWithTag is acceptable — production builds
-    // should replace this with a centralized player registry (same note as EnemyCombatBrain).
+    // Delegates to the shared PlayerFinder utility.
     private Transform FindNearestPlayer()
     {
-        GameObject[] players = GameObject.FindGameObjectsWithTag(playerTag);
-        if (players.Length == 0) return null;
-
-        Transform nearest       = null;
-        float     nearestSqDist = float.MaxValue;
-
-        foreach (var p in players)
-        {
-            float sqDist = (p.transform.position - transform.position).sqrMagnitude;
-            if (sqDist < nearestSqDist)
-            {
-                nearestSqDist = sqDist;
-                nearest       = p.transform;
-            }
-        }
-
-        return nearest;
+        return PlayerFinder.FindNearest(transform.position, playerTag);
     }
 
     // NGO convenience — brain works on server only but does not extend NetworkBehaviour.

@@ -66,27 +66,11 @@ public abstract class EnemyMovementBase : NetworkBehaviour
 
     // ── Shared utility ───────────────────────────────────────────────────────
 
-    // Scans all live players and returns the nearest Transform.
-    // Dead players excluded — DeathController removes the player tag on death.
+    // Delegates to the shared PlayerFinder utility.
+    // Kept as a protected method so subclasses can call it without knowing about the static helper.
     protected Transform FindNearestPlayer()
     {
-        GameObject[] players = GameObject.FindGameObjectsWithTag(playerTag);
-        if (players.Length == 0) return null;
-
-        Transform nearest       = null;
-        float     nearestSqDist = float.MaxValue;
-
-        foreach (var p in players)
-        {
-            float sqDist = (p.transform.position - transform.position).sqrMagnitude;
-            if (sqDist < nearestSqDist)
-            {
-                nearestSqDist = sqDist;
-                nearest       = p.transform;
-            }
-        }
-
-        return nearest;
+        return PlayerFinder.FindNearest(transform.position, playerTag);
     }
 
     // Rotates the enemy to face a world-space position, ignoring Y.
