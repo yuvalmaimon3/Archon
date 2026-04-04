@@ -32,6 +32,7 @@ public class EnemyInitializer : NetworkBehaviour
     private AttackController    _attackController;
     private EnemyMovementBase   _movement;
     private ContactDamageDealer _contactDamageDealer; // optional — not all enemies use contact damage
+    private EnemyNameplate      _nameplate;           // optional — updates name/level label after stat apply
 
     // ── Read-only properties ─────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ public class EnemyInitializer : NetworkBehaviour
         _attackController    = GetComponent<AttackController>();
         _movement            = GetComponent<EnemyMovementBase>(); // works for Ground or Flying
         _contactDamageDealer = GetComponent<ContactDamageDealer>(); // optional
+        _nameplate           = GetComponent<EnemyNameplate>();       // optional
 
         if (enemyData == null)
             Debug.LogError($"[EnemyInitializer] '{name}' has no EnemyData assigned.", this);
@@ -128,5 +130,8 @@ public class EnemyInitializer : NetworkBehaviour
         // ContactDamageDealer — optional, only present on contact-attack enemies.
         if (_contactDamageDealer != null)
             _contactDamageDealer.SetDamageMultiplier(stats.damageMultiplier);
+
+        // Nameplate — refresh name + level label after stats are applied so it shows the correct level.
+        _nameplate?.Refresh();
     }
 }
