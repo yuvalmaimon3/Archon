@@ -46,6 +46,12 @@ public class Health : MonoBehaviour, IDamageable
     /// </summary>
     public event Action<DamageInfo> OnDeath;
 
+    /// <summary>
+    /// Fired when the entity is successfully revived.
+    /// Subscribe here for revive VFX, UI feedback, audio, etc.
+    /// </summary>
+    public event Action OnRevived;
+
     // ── Private references ───────────────────────────────────────────────────
 
     // Cached once in Awake — null if this GameObject has no elemental component.
@@ -148,6 +154,31 @@ public class Health : MonoBehaviour, IDamageable
     {
         _currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
+    // ── Revival ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Restores the entity to full health and clears the dead flag.
+    /// Called by the revive system (solo: revive item, co-op: room start).
+    /// Fires OnDamaged so health bars update, and OnRevived for VFX/audio hooks.
+    /// Does nothing if the entity is not currently dead.
+    /// </summary>
+    public void Revive()
+    {
+        // Ignore if not dead — prevents accidental double-revive
+        if (!IsDead) return;
+
+        _currentHealth = maxHealth;
+        IsDead         = false;
+
+        Debug.Log($"[Health] {gameObject.name} revived — HP restored to {maxHealth}.");
+
+        // Update health bars and other HP-display systems
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+
+        // Notify revive listeners (animation, VFX, audio)
+        OnRevived?.Invoke();
     }
 
     // ── Test utilities ───────────────────────────────────────────────────────
