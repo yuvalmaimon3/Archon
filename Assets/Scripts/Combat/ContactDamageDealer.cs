@@ -36,6 +36,14 @@ public class ContactDamageDealer : MonoBehaviour
     // Using IDamageable as key keeps this decoupled from any specific component type.
     private readonly Dictionary<IDamageable, float> _activeTargets = new();
 
+    // Reused each Update to avoid allocating a new List every frame.
+    // Snapshot of keys is needed because a tick can kill a target, modifying the dictionary.
+    private readonly List<IDamageable> _tickSnapshot = new();
+
+    // Collects targets whose underlying GameObject was destroyed without OnTriggerExit.
+    // Cleaned up at the end of each Update pass.
+    private readonly List<IDamageable> _staleTargets = new();
+
     // Cached element application — rebuilt in Awake so it is not reconstructed each tick
     private ElementApplication _elementApplication;
 
@@ -78,12 +86,23 @@ public class ContactDamageDealer : MonoBehaviour
     {
         if (attackDefinition == null || _activeTargets.Count == 0) return;
 
-        // Snapshot keys to avoid modifying the dictionary while iterating
-        // (a tick could kill a target, triggering OnTriggerExit mid-loop)
-        var targets = new List<IDamageable>(_activeTargets.Keys);
+        // Snapshot keys into a reusable list to avoid dictionary-modification during iteration
+        _tickSnapshot.Clear();
+        _tickSnapshot.AddRange(_activeTargets.Keys);
 
-        foreach (IDamageable target in targets)
+        _staleTargets.Clear();
+
+        foreach (IDamageable target in _tickSnapshot)
         {
+            // If the target's GameObject was destroyed (e.g. enemy despawned),
+            // OnTriggerExit never fires. Mark it for removal instead of crashing.
+            var targetComponent = target as Component;
+            if (targetComponent == null)
+            {
+                _staleTargets.Add(target);
+                continue;
+            }
+
             // Target may have been removed by OnTriggerExit between the snapshot and now
             if (!_activeTargets.TryGetValue(target, out float nextTickTime)) continue;
 
@@ -95,6 +114,10 @@ public class ContactDamageDealer : MonoBehaviour
 
             ApplyDamageTo(target);
         }
+
+        // Clean up targets whose GameObjects were destroyed without triggering OnTriggerExit
+        foreach (IDamageable stale in _staleTargets)
+            _activeTargets.Remove(stale);
     }
 
     // ── Trigger callbacks ────────────────────────────────────────────────────

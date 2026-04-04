@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -57,6 +58,10 @@ public class Projectile : NetworkBehaviour
     // Controls whether destruction goes through NGO (Despawn) or Unity (Destroy).
     private bool _isNetworked;
 
+    // Reference to the lifetime coroutine so it can be cancelled precisely on hit.
+    // Avoids CancelInvoke which would cancel ALL pending invocations on this object.
+    private Coroutine _lifetimeCoroutine;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -86,7 +91,7 @@ public class Projectile : NetworkBehaviour
     {
         // Only the server owns the lifetime timer so there is a single authority.
         if (IsServer)
-            Invoke(nameof(ServerDespawn), lifetime);
+            _lifetimeCoroutine = StartCoroutine(LifetimeExpiry());
     }
 
     // ── Networked initialization ─────────────────────────────────────────────
@@ -198,24 +203,22 @@ public class Projectile : NetworkBehaviour
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Server-side lifetime expiry — despawns on all clients when the lifetime timer fires.
-    /// </summary>
-    private void ServerDespawn()
+    // Server-side lifetime expiry coroutine — despawns on all clients when time runs out.
+    private IEnumerator LifetimeExpiry()
     {
+        yield return new WaitForSeconds(lifetime);
         if (IsSpawned)
             NetworkObject.Despawn(destroy: true);
     }
 
-    /// <summary>
-    /// Routes destruction through NGO (networked) or Unity (standalone) as appropriate.
-    /// </summary>
+    // Routes destruction through NGO (networked) or Unity (standalone) as appropriate.
     private void DestroyProjectile()
     {
         if (_isNetworked)
         {
-            // Cancel the scheduled lifetime despawn — this hit-despawn takes over.
-            CancelInvoke(nameof(ServerDespawn));
+            // Cancel the lifetime coroutine precisely — only stops this specific timer.
+            if (_lifetimeCoroutine != null)
+                StopCoroutine(_lifetimeCoroutine);
 
             if (IsSpawned)
                 NetworkObject.Despawn(destroy: true);

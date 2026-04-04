@@ -14,6 +14,9 @@ public static class MeleeAttackExecutor
     // Reused across calls to avoid per-frame allocation from OverlapSphere
     private static readonly Collider[] _overlapBuffer = new Collider[32];
 
+    // Reused across calls to avoid allocating a new list every melee swing
+    private static readonly List<IDamageable> _targetBuffer = new(32);
+
     // Detects all IDamageable targets within the melee radius and applies damage to each.
     // The source object is always excluded. Each valid target is damaged exactly once.
     //
@@ -52,10 +55,15 @@ public static class MeleeAttackExecutor
             _overlapBuffer
         );
 
+        // Warn if the buffer is full — some targets may have been silently dropped
+        if (hitCount >= _overlapBuffer.Length)
+            Debug.LogWarning($"[MeleeAttackExecutor] Overlap buffer full ({_overlapBuffer.Length}). " +
+                             $"Some targets near '{origin.name}' may have been missed.");
+
         // Collect valid damageable targets first, then apply damage.
         // This prevents a kill (and potential Destroy) on the first hit from
         // affecting the collider buffer mid-loop.
-        var targets = new List<IDamageable>(hitCount);
+        _targetBuffer.Clear();
 
         for (int i = 0; i < hitCount; i++)
         {
@@ -66,10 +74,10 @@ public static class MeleeAttackExecutor
                 continue;
 
             if (col.TryGetComponent<IDamageable>(out var damageable))
-                targets.Add(damageable);
+                _targetBuffer.Add(damageable);
         }
 
-        if (targets.Count == 0)
+        if (_targetBuffer.Count == 0)
         {
             Debug.Log($"[MeleeAttackExecutor] '{origin.name}' swung '{attackDefinition.AttackId}' — no targets hit.");
             return;
@@ -83,7 +91,11 @@ public static class MeleeAttackExecutor
             source:   origin.gameObject
         );
 
-        foreach (IDamageable target in targets)
+        // Use the override if provided (level-scaled value from AttackController),
+        // otherwise fall back to the base value in the AttackDefinition asset.
+        int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
+
+        foreach (IDamageable target in _targetBuffer)
         {
             // Cast to Component for position and name — IDamageable alone cannot provide these
             var targetComponent = target as Component;
@@ -92,11 +104,7 @@ public static class MeleeAttackExecutor
                 ? (targetComponent.transform.position - origin.position).normalized
                 : origin.forward;
 
-            // Use the override if provided (level-scaled value from AttackController),
-        // otherwise fall back to the base value in the AttackDefinition asset.
-        int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
-
-        var damageInfo = new DamageInfo(
+            var damageInfo = new DamageInfo(
                 amount:             finalDamage,
                 source:             origin.gameObject,
                 hitPoint:           hitPoint,
@@ -107,7 +115,7 @@ public static class MeleeAttackExecutor
             target.TakeDamage(damageInfo);
         }
 
-        Debug.Log($"[MeleeAttackExecutor] '{origin.name}' hit {targets.Count} target(s) " +
+        Debug.Log($"[MeleeAttackExecutor] '{origin.name}' hit {_targetBuffer.Count} target(s) " +
                   $"with '{attackDefinition.AttackId}'.");
     }
 }
