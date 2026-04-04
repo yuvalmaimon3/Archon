@@ -13,8 +13,6 @@ using UnityEngine.UI;
 /// IMPORTANT — fill update is intentionally placed BEFORE the camera null-check.
 /// The camera is only needed for billboard rotation. A missing camera must never
 /// block the health bar drain animation.
-///
-/// Color gradient: green (full) → yellow (50 %) → red (critical / empty).
 /// </summary>
 public class Healthbar : MonoBehaviour
 {

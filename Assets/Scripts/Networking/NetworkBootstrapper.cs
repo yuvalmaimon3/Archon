@@ -29,6 +29,11 @@ public class NetworkBootstrapper : MonoBehaviour
         Instance = this;
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     private async void Start()
     {
         // async void is fine for MonoBehaviour entry points (Start, Awake, etc.)
