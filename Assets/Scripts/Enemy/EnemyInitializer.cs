@@ -48,7 +48,11 @@ public class EnemyInitializer : NetworkBehaviour
     {
         _health              = GetComponent<Health>();
         _attackController    = GetComponent<AttackController>();
-        _movement            = GetComponent<EnemyMovementBase>(); // works for Ground or Flying
+        // Use the first ENABLED EnemyMovementBase — prefab variants (e.g. Wraith) disable the
+        // base GroundEnemyMovement and add their own component, so GetComponent() alone would
+        // return the disabled base component and skip initialization entirely.
+        var allMovements = GetComponents<EnemyMovementBase>();
+        _movement = System.Array.Find(allMovements, m => m.enabled) ?? (allMovements.Length > 0 ? allMovements[0] : null);
         _contactDamageDealer = GetComponent<ContactDamageDealer>(); // optional
         _nameplate           = GetComponent<EnemyNameplate>();       // optional
 
