@@ -2,43 +2,26 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Wraith-specific flying movement: orbits the player at a preferred distance
-/// and retreats when the player gets too close.
+/// Wraith-specific ghost movement: flies directly toward the player in a straight line,
+/// ignoring all terrain and obstacles (ghost / phase-through behavior).
 ///
-/// Three zones drive behavior each frame:
-///   - Too close  (distance &lt; retreatDistance)  → move directly away
-///   - Orbit      (retreatDistance .. orbitDistance) → strafe laterally
-///   - Approach   (distance &gt; orbitDistance)    → move toward player
+/// The Wraith hovers at a fixed height above the player's Y while approaching.
+/// It stops when within AttackRange so the trigger collider overlaps the player
+/// and ContactDamageDealer can tick.
 ///
-/// Strafing direction flips on a timer so the Wraith circles rather than
-/// always moving the same way. Hover height keeps it floating above the player.
+/// Ghost setup requires:
+///   - NavMeshAgent disabled on the prefab (no NavMesh constraint)
+///   - CapsuleCollider set to isTrigger (no physics blocking)
+///   - Kinematic Rigidbody (no gravity, direct transform movement)
 ///
-/// Kinematic Rigidbody — no gravity, no physics solver.
 /// Server-only locomotion; clients receive position via NetworkTransform.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class WraithMovement : EnemyMovementBase
 {
-    [Header("Orbit Settings")]
-    [Tooltip("Distance below which the Wraith retreats from the player.")]
-    [SerializeField] private float retreatDistance = 4f;
-
-    [Tooltip("Distance above which the Wraith approaches the player. " +
-             "Between retreatDistance and orbitDistance it strafes.")]
-    [SerializeField] private float orbitDistance = 8f;
-
-    [Tooltip("Height above the player's Y position the Wraith tries to maintain.")]
-    [SerializeField] private float hoverHeight = 2.5f;
-
-    [Tooltip("Seconds between strafe direction flips. Controls how tightly it circles.")]
-    [Min(0.5f)]
-    [SerializeField] private float strafeFlipInterval = 3f;
-
-    // +1 or -1 — which side of the player the Wraith is strafing toward.
-    private float _strafeSign = 1f;
-
-    // Time.time when the next strafe flip occurs.
-    private float _nextStrafeFlip;
+    [Header("Movement Settings")]
+    [Tooltip("Height above the player's Y position the Wraith tries to maintain while chasing.")]
+    [SerializeField] private float hoverHeight = 2f;
 
     private Rigidbody _rb;
 
@@ -52,7 +35,7 @@ public class WraithMovement : EnemyMovementBase
     {
         _rb = GetComponent<Rigidbody>();
 
-        // Kinematic — locomotion is via transform, not physics forces.
+        // Ghost movement: no gravity, no physics forces — direct transform control.
         _rb.useGravity     = false;
         _rb.isKinematic    = true;
         _rb.freezeRotation = true;
@@ -61,10 +44,6 @@ public class WraithMovement : EnemyMovementBase
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
-
-        // Schedule the first strafe flip immediately so timing starts on spawn.
-        _nextStrafeFlip = Time.time + strafeFlipInterval;
-
         Debug.Log($"[WraithMovement] '{name}' spawned on server.");
     }
 
@@ -77,23 +56,17 @@ public class WraithMovement : EnemyMovementBase
         Transform target = FindNearestPlayer();
         if (target == null) return;
 
-        // Tick the strafe direction flip timer.
-        TickStrafeFlip();
+        float distance = Vector3.Distance(transform.position, target.position);
 
-        Vector3 targetPos = target.position;
-        float   distance  = Vector3.Distance(transform.position, targetPos);
+        // Stop and face the player once within attack range —
+        // the trigger collider will overlap and ContactDamageDealer handles the rest.
+        if (distance <= EnemyData.AttackRange)
+        {
+            FaceTarget(target.position);
+            return;
+        }
 
-        Vector3 move = CalculateMovement(targetPos, distance);
-
-        // Apply movement — kinematic, so we use MoveTowards for clean clamping.
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            transform.position + move,
-            (_scaledMoveSpeed >= 0f ? _scaledMoveSpeed : EnemyData.MoveSpeed) * Time.deltaTime
-        );
-
-        // Always face the player regardless of movement direction.
-        FaceTarget(targetPos);
+        MoveTowardTarget(target.position);
     }
 
     // ── EnemyMovementBase overrides ──────────────────────────────────────────
@@ -104,14 +77,12 @@ public class WraithMovement : EnemyMovementBase
     }
 
     // Stores the level-scaled move speed from EnemyInitializer.
-    // Without this override, the base no-op silently discards the scaled value
-    // and Update would always use the unscaled EnemyData.MoveSpeed.
     public override void SetMoveSpeed(float speed)
     {
         _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 
-    // Knockback: switch to physical mode so forces can be applied in 3D.
+    // Knockback: switch to physical mode so forces can be applied.
     protected override void OnKnockbackStart()
     {
         _rb.isKinematic = false;
@@ -123,65 +94,26 @@ public class WraithMovement : EnemyMovementBase
     {
         _rb.linearVelocity = Vector3.zero;
         _rb.isKinematic    = true;
-
         Debug.Log($"[WraithMovement] '{name}' recovered from knockback.");
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Flips the strafe direction sign when the timer expires.
-    /// This makes the Wraith circle rather than drift in one direction forever.
-    /// </summary>
-    private void TickStrafeFlip()
+    // Moves directly toward the target position, hovering at the configured height above them.
+    // Uses direct transform.position (kinematic) so walls and NavMesh are completely ignored.
+    private void MoveTowardTarget(Vector3 targetPosition)
     {
-        if (Time.time < _nextStrafeFlip) return;
+        // Hover target: match the player's X/Z but stay above them at hoverHeight.
+        Vector3 destination = new Vector3(targetPosition.x, targetPosition.y + hoverHeight, targetPosition.z);
 
-        _strafeSign     *= -1f;
-        _nextStrafeFlip  = Time.time + strafeFlipInterval;
+        float speed = _scaledMoveSpeed >= 0f ? _scaledMoveSpeed : EnemyData.MoveSpeed;
 
-        Debug.Log($"[WraithMovement] '{name}' strafe direction flipped to {(_strafeSign > 0 ? "right" : "left")}.");
-    }
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            destination,
+            speed * Time.deltaTime
+        );
 
-    /// <summary>
-    /// Returns a normalized world-space movement direction based on the current zone.
-    ///
-    /// Retreat: directly away from the player on the XZ plane, with vertical hover correction.
-    /// Orbit:   perpendicular to the player direction on XZ — pure lateral strafe.
-    /// Approach: directly toward the player, with vertical hover correction.
-    ///
-    /// Hover is handled by blending toward targetY = player.y + hoverHeight on all zones
-    /// except orbit (orbit is lateral only — no vertical hunting while strafing).
-    /// </summary>
-    private Vector3 CalculateMovement(Vector3 targetPos, float distance)
-    {
-        // Horizontal direction from Wraith to player.
-        Vector3 toPlayer     = (targetPos - transform.position);
-        Vector3 toPlayerFlat = new Vector3(toPlayer.x, 0f, toPlayer.z).normalized;
-
-        // Target hover Y — used by retreat and approach zones.
-        float   targetY      = targetPos.y + hoverHeight;
-        float   yDiff        = targetY - transform.position.y;
-
-        if (distance < retreatDistance)
-        {
-            // Retreat: move away horizontally + correct vertical hover.
-            Vector3 horizontal = -toPlayerFlat;
-            Vector3 vertical   = Vector3.up * Mathf.Sign(yDiff);
-            return (horizontal + vertical * 0.5f).normalized;
-        }
-
-        if (distance > orbitDistance)
-        {
-            // Approach: move toward player + correct vertical hover.
-            Vector3 horizontal = toPlayerFlat;
-            Vector3 vertical   = Vector3.up * Mathf.Sign(yDiff);
-            return (horizontal + vertical * 0.5f).normalized;
-        }
-
-        // Orbit: strafe perpendicular to the player direction on the XZ plane.
-        // Cross(toPlayerFlat, up) gives a right-perpendicular; _strafeSign flips it.
-        Vector3 strafe = Vector3.Cross(toPlayerFlat, Vector3.up) * _strafeSign;
-        return strafe.normalized;
+        FaceTarget(targetPosition);
     }
 }
