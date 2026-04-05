@@ -59,9 +59,14 @@ public static class ProjectileAttackExecutor
 
         // ── Spawn ────────────────────────────────────────────────────────────
 
+        // Offset upward so the projectile spawns at roughly chest height rather than
+        // the root position (ground level). Without this, the sphere collider immediately
+        // overlaps the floor and the projectile is destroyed before it becomes visible.
+        Vector3 spawnPosition = origin.position + Vector3.up * 1.0f;
+
         Projectile projectile = Object.Instantiate(
             attackDefinition.ProjectilePrefab,
-            origin.position,
+            spawnPosition,
             Quaternion.LookRotation(direction)   // face the travel direction for correct visuals
         );
 
