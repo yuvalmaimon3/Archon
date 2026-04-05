@@ -11,13 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a7f948d1fe9abc488f9361c4551f8f0, type: 3}
   m_Name: SkeletonArrowAttack
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   attackId: SkeletonArrow
   attackType: 0
   damage: 12
   cooldown: 2.5
   range: 10
-  projectilePrefab: {fileID: 1622052836426078187, guid: 8a222dce2b0c3be4abcb10a85c708943, type: 3}
+  projectilePrefab: {fileID: 1109371598324639139, guid: 9c58b1d508cd42b4a97d1dc585c4cf14, type: 3}
   projectileSpeed: 8
   projectileTargetTag: Player
   meleeRadius: 1.5
