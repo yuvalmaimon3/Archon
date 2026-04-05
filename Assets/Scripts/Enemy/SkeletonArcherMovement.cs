@@ -72,14 +72,14 @@ public class SkeletonArcherMovement : EnemyMovementBase
     // even when the MonoBehaviour is disabled, so explicit stop is required.
     protected override void OnDeathCleanup()
     {
-        _agent.ResetPath();
+        if (_agent.isOnNavMesh) _agent.ResetPath();
         _agent.enabled = false;
     }
 
     // Disables NavMeshAgent and hands control to Rigidbody during knockback.
     protected override void OnKnockbackStart()
     {
-        _agent.ResetPath();
+        if (_agent.isOnNavMesh) _agent.ResetPath();
         _agent.enabled  = false;
         _rb.isKinematic = false;
     }

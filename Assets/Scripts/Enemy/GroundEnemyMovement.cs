@@ -63,7 +63,7 @@ public class GroundEnemyMovement : EnemyMovementBase
 
         if (_target == null)
         {
-            _agent.ResetPath();
+            if (_agent.isOnNavMesh) _agent.ResetPath();
             return;
         }
 
@@ -72,7 +72,7 @@ public class GroundEnemyMovement : EnemyMovementBase
         if (distance <= EnemyData.AttackRange)
         {
             // In attack range — stop and face the target.
-            _agent.ResetPath();
+            if (_agent.isOnNavMesh) _agent.ResetPath();
             FaceTarget(_target.position);
         }
         else
@@ -111,14 +111,14 @@ public class GroundEnemyMovement : EnemyMovementBase
     // sliding toward the player after health hits zero.
     protected override void OnDeathCleanup()
     {
-        _agent.ResetPath();
+        if (_agent.isOnNavMesh) _agent.ResetPath();
         _agent.enabled = false;
     }
 
     // Disable agent and hand control to Rigidbody for physics-driven knockback.
     protected override void OnKnockbackStart()
     {
-        _agent.ResetPath();
+        if (_agent.isOnNavMesh) _agent.ResetPath();
         _agent.enabled  = false;
         _rb.isKinematic = false;
     }
