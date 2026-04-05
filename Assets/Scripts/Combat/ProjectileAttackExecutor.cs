@@ -1,12 +1,17 @@
+using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Stateless utility class responsible for spawning and initializing a Projectile.
-/// Has one job: given an origin, a direction, and an AttackDefinition, fire a projectile.
-///
-/// Does not manage cooldowns, select targets, or contain damage logic.
-/// Cooldowns stay in AttackController; target selection stays in the caller (player/enemy AI).
-/// </summary>
+// Stateless utility class responsible for spawning and initializing a Projectile.
+// Has one job: given an origin, a direction, and an AttackDefinition, fire a projectile.
+//
+// Networking:
+//   When called on a networked server (host or dedicated), spawns via NetworkObject.Spawn()
+//   and calls InitializeClientRpc so all clients simulate the same trajectory.
+//   When called in standalone/offline mode, uses Object.Instantiate + Initialize() with
+//   a local Destroy timer instead.
+//
+// Does not manage cooldowns, select targets, or contain damage logic.
+// Cooldowns stay in AttackController; target selection stays in the caller (player/enemy AI).
 public static class ProjectileAttackExecutor
 {
     // Spawns a projectile at origin and sends it in direction.
@@ -60,25 +65,53 @@ public static class ProjectileAttackExecutor
             Quaternion.LookRotation(direction)   // face the travel direction for correct visuals
         );
 
-        // Build elemental data — Element.None means no element is applied on this hit
-        var elementApplication = new ElementApplication(
-            element:  attackDefinition.ElementType,
-            strength: attackDefinition.ElementStrength,
-            source:   origin.gameObject
-        );
-
-        // Use the override if provided (level-scaled value from AttackController),
-        // otherwise fall back to the base value in the AttackDefinition asset.
         int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
 
-        projectile.Initialize(
-            damage:             finalDamage,
-            source:             origin.gameObject,
-            direction:          direction,
-            speed:              attackDefinition.ProjectileSpeed,
-            elementApplication: elementApplication,
-            targetTag:          attackDefinition.ProjectileTargetTag
-        );
+        // ── Network vs standalone initialization ─────────────────────────────
+
+        bool isNetworkedServer = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+
+        if (isNetworkedServer)
+        {
+            // Spawn through NGO so all clients receive and simulate the projectile.
+            // Without this, the object only exists locally and is invisible to remote clients.
+            projectile.NetworkObject.Spawn();
+
+            // Resolve the source as a NetworkObjectReference so clients can identify the shooter.
+            // Falls back to default (empty ref) when the origin has no NetworkObject.
+            NetworkObjectReference sourceRef = default;
+            if (origin.TryGetComponent<NetworkObject>(out var originNetObj))
+                sourceRef = new NetworkObjectReference(originNetObj);
+
+            projectile.InitializeClientRpc(
+                damage:          finalDamage,
+                sourceRef:       sourceRef,
+                direction:       direction,
+                speed:           attackDefinition.ProjectileSpeed,
+                elementType:     attackDefinition.ElementType,
+                elementStrength: attackDefinition.ElementStrength,
+                targetTag:       attackDefinition.ProjectileTargetTag
+            );
+        }
+        else
+        {
+            // Standalone / offline mode — no NGO session active.
+            // Local Destroy timer replaces the server lifetime coroutine.
+            var elementApplication = new ElementApplication(
+                element:  attackDefinition.ElementType,
+                strength: attackDefinition.ElementStrength,
+                source:   origin.gameObject
+            );
+
+            projectile.Initialize(
+                damage:             finalDamage,
+                source:             origin.gameObject,
+                direction:          direction,
+                speed:              attackDefinition.ProjectileSpeed,
+                elementApplication: elementApplication,
+                targetTag:          attackDefinition.ProjectileTargetTag
+            );
+        }
 
         Debug.Log($"[ProjectileAttackExecutor] '{origin.name}' fired '{attackDefinition.AttackId}'.");
 
