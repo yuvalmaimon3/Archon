@@ -74,4 +74,13 @@
 
 ---
 
+## Artillery
+**Type:** Slow Ranged Lobber
+**Movement:** Ground (NavMesh), slow chase. Stops at 7u and fires.
+**Attack:** ArcBlastProjectile — lobs a shell in a parabolic arc (height 4u, travel 1.8s). Explodes on landing with AOE blast (radius 2.5) dealing 8 dmg to ALL targets hit. Fires every 4s.
+**Stats:** HP 30 | Speed 1.5 | Attack range 7
+**Notes:** Low HP — dies fast if reached. Blast catches grouped players. Player can dodge the landing zone before impact.
+
+---
+
 *Last updated: 2026-04-05*
