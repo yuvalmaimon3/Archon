@@ -7,8 +7,12 @@ using UnityEngine;
 // KnockbackHandler and EnemyInitializer talk only to this base class —
 // they don't care whether the enemy walks or flies.
 //
+// Implements IDeathHandler so movement stops the instant the entity dies —
+// called by DeathController before scripts are disabled, preventing the NavMeshAgent
+// (or any locomotion system) from continuing to run after health hits zero.
+//
 // To add a new movement type: extend this class and implement the abstract methods.
-public abstract class EnemyMovementBase : NetworkBehaviour
+public abstract class EnemyMovementBase : NetworkBehaviour, IDeathHandler
 {
     [Header("Movement Config")]
     // Unity tag used to locate players.
@@ -52,6 +56,24 @@ public abstract class EnemyMovementBase : NetworkBehaviour
         IsKnockedBack = false;
         OnKnockbackEnd();
     }
+
+    // ── IDeathHandler ────────────────────────────────────────────────────────
+
+    // Called by DeathController (Step 1) the moment health hits zero.
+    // Stops all locomotion immediately — before scripts are disabled in Step 2 —
+    // so the enemy never continues moving after it dies.
+    public void OnDeath()
+    {
+        OnDeathCleanup();
+        Debug.Log($"[{GetType().Name}] '{name}' movement stopped on death.");
+    }
+
+    // Override in subclasses to perform type-specific death cleanup.
+    // Default: no-op (sufficient for Update/FixedUpdate-based movers
+    // since DeathController will disable the script in Step 2).
+    // NavMeshAgent-based movers must override to stop the agent explicitly —
+    // the agent keeps pathfinding even when the MonoBehaviour is disabled.
+    protected virtual void OnDeathCleanup() { }
 
     // ── Abstract / virtual hooks for subclasses ──────────────────────────────
 

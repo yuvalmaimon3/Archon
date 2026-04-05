@@ -100,6 +100,16 @@ public class GroundEnemyMovement : EnemyMovementBase
         _agent.speed = Mathf.Max(0f, speed);
     }
 
+    // Stops the NavMeshAgent immediately on death.
+    // The agent keeps pathfinding even when the MonoBehaviour is disabled —
+    // explicit reset + disable is required to prevent the enemy from
+    // sliding toward the player after health hits zero.
+    protected override void OnDeathCleanup()
+    {
+        _agent.ResetPath();
+        _agent.enabled = false;
+    }
+
     // Disable agent and hand control to Rigidbody for physics-driven knockback.
     protected override void OnKnockbackStart()
     {
