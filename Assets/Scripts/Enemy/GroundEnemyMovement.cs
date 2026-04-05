@@ -46,6 +46,10 @@ public class GroundEnemyMovement : EnemyMovementBase
             return;
         }
 
+        // Snap to NavMesh on spawn — prevents "SetDestination on inactive agent" errors
+        // when the enemy is placed slightly off the baked mesh surface.
+        _agent.Warp(transform.position);
+
         Debug.Log($"[GroundEnemyMovement] '{name}' spawned on server.");
     }
 
@@ -76,7 +80,8 @@ public class GroundEnemyMovement : EnemyMovementBase
             // Throttle SetDestination calls to save CPU on mobile.
             if (Time.time >= _nextDestinationUpdate)
             {
-                _agent.SetDestination(_target.position);
+                if (_agent.isOnNavMesh)
+                    _agent.SetDestination(_target.position);
                 _nextDestinationUpdate = Time.time + destinationUpdateInterval;
             }
 

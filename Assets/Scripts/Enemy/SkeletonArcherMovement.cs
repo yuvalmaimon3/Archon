@@ -40,6 +40,12 @@ public class SkeletonArcherMovement : EnemyMovementBase
             return;
         }
 
+        // Snap the agent to the nearest NavMesh position on spawn.
+        // Enemies placed in the scene or spawned slightly above the mesh would otherwise
+        // throw "SetDestination can only be called on an active agent that has been placed
+        // on a NavMesh" until the agent naturally settles, which may never happen.
+        _agent.Warp(transform.position);
+
         Debug.Log($"[SkeletonArcherMovement] '{name}' spawned on server.");
     }
 
@@ -97,14 +103,14 @@ public class SkeletonArcherMovement : EnemyMovementBase
     // Called each Update by SkeletonArcherBrain while repositioning or retreating.
     public void MoveTo(Vector3 destination)
     {
-        if (!_agent.enabled) return;
+        if (!_agent.enabled || !_agent.isOnNavMesh) return;
         _agent.SetDestination(destination);
     }
 
     // Stops all NavMesh pathfinding — used when the archer is in Attack state.
     public void Stop()
     {
-        if (!_agent.enabled) return;
+        if (!_agent.enabled || !_agent.isOnNavMesh) return;
         _agent.ResetPath();
     }
 
