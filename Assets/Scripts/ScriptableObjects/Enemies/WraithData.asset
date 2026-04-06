@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   enemyName: Wraith
   maxHealth: 45
-  moveSpeed: 3.5
+  moveSpeed: 1.75
   attackRange: 1.2
   attackDefinition: {fileID: 0}
   healthScalingPerLevel: 0.1
