@@ -46,6 +46,12 @@ public class Health : MonoBehaviour, IDamageable
     /// </summary>
     public event Action<DamageInfo> OnDeath;
 
+    /// <summary>
+    /// Fired when the entity is successfully revived.
+    /// Subscribe here for revive VFX, UI feedback, audio, etc.
+    /// </summary>
+    public event Action OnRevived;
+
     // ── Private references ───────────────────────────────────────────────────
 
     // Cached once in Awake — null if this GameObject has no elemental component.
@@ -118,6 +124,24 @@ public class Health : MonoBehaviour, IDamageable
             Die(damageInfo);
     }
 
+    // ── Runtime setup ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Overrides the max health value at runtime and resets current health to the new max.
+    /// Called by EnemyInitializer on spawn so EnemyData is the single source of truth for HP.
+    /// Not intended for mid-combat use — use only before the entity takes any damage.
+    /// </summary>
+    public void SetMaxHealth(int newMaxHealth)
+    {
+        maxHealth      = Mathf.Max(1, newMaxHealth);
+        _currentHealth = maxHealth;
+        IsDead         = false;
+
+        Debug.Log($"[Health] {gameObject.name} max health set to {maxHealth}.");
+
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
     // ── Network sync ─────────────────────────────────────────────────────────
 
     /// <summary>
@@ -154,6 +178,7 @@ public class Health : MonoBehaviour, IDamageable
         // Notify revive listeners (animation, VFX, audio)
         OnRevived?.Invoke();
     }
+
 
     // ── Level-up support ─────────────────────────────────────────────────────
 

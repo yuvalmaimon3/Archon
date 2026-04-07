@@ -1,22 +1,26 @@
+using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Stateless utility class responsible for spawning and initializing a Projectile.
-/// Has one job: given an origin, a direction, and an AttackDefinition, fire a projectile.
-///
-/// Does not manage cooldowns, select targets, or contain damage logic.
-/// Cooldowns stay in AttackController; target selection stays in the caller (player/enemy AI).
-/// </summary>
+// Stateless utility class responsible for spawning and initializing a Projectile.
+// Has one job: given an origin, a direction, and an AttackDefinition, fire a projectile.
+//
+// Networking:
+//   When called on a networked server (host or dedicated), spawns via NetworkObject.Spawn()
+//   and calls InitializeClientRpc so all clients simulate the same trajectory.
+//   When called in standalone/offline mode, uses Object.Instantiate + Initialize() with
+//   a local Destroy timer instead.
+//
+// Does not manage cooldowns, select targets, or contain damage logic.
+// Cooldowns stay in AttackController; target selection stays in the caller (player/enemy AI).
 public static class ProjectileAttackExecutor
 {
-    /// <summary>
-    /// Spawns a projectile at <paramref name="origin"/> and sends it in <paramref name="direction"/>.
-    /// Returns the spawned Projectile, or null if execution was blocked by a validation failure.
-    /// </summary>
-    /// <param name="origin">Spawn point and source transform (used as the damage source).</param>
-    /// <param name="direction">World-space direction the projectile travels (does not need to be normalized).</param>
-    /// <param name="attackDefinition">Data asset that defines the attack stats and prefab.</param>
-    public static Projectile Execute(Transform origin, Vector3 direction, AttackDefinition attackDefinition)
+    // Spawns a projectile at origin and sends it in direction.
+    // Returns the spawned Projectile, or null if execution was blocked by a validation failure.
+    //
+    // damageOverride: when >= 0, replaces attackDefinition.Damage — used by EnemyCombatBrain
+    // to apply level-scaled damage (AttackController.EffectiveDamage) without mutating
+    // the shared AttackDefinition ScriptableObject asset.
+    public static Projectile Execute(Transform origin, Vector3 direction, AttackDefinition attackDefinition, int damageOverride = -1)
     {
         // ── Validation ───────────────────────────────────────────────────────
 
@@ -55,27 +59,64 @@ public static class ProjectileAttackExecutor
 
         // ── Spawn ────────────────────────────────────────────────────────────
 
+        // Offset upward so the projectile spawns at roughly chest height rather than
+        // the root position (ground level). Without this, the sphere collider immediately
+        // overlaps the floor and the projectile is destroyed before it becomes visible.
+        Vector3 spawnPosition = origin.position + Vector3.up * 1.0f;
+
         Projectile projectile = Object.Instantiate(
             attackDefinition.ProjectilePrefab,
-            origin.position,
+            spawnPosition,
             Quaternion.LookRotation(direction)   // face the travel direction for correct visuals
         );
 
-        // Build elemental data — Element.None means no element is applied on this hit
-        var elementApplication = new ElementApplication(
-            element:  attackDefinition.ElementType,
-            strength: attackDefinition.ElementStrength,
-            source:   origin.gameObject
-        );
+        int finalDamage = damageOverride >= 0 ? damageOverride : attackDefinition.Damage;
 
-        projectile.Initialize(
-            damage:             attackDefinition.Damage,
-            source:             origin.gameObject,
-            direction:          direction,
-            speed:              attackDefinition.ProjectileSpeed,
-            elementApplication: elementApplication,
-            targetTag:          attackDefinition.ProjectileTargetTag
-        );
+        // ── Network vs standalone initialization ─────────────────────────────
+
+        bool isNetworkedServer = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+
+        if (isNetworkedServer)
+        {
+            // Spawn through NGO so all clients receive and simulate the projectile.
+            // Without this, the object only exists locally and is invisible to remote clients.
+            projectile.NetworkObject.Spawn();
+
+            // Resolve the source as a NetworkObjectReference so clients can identify the shooter.
+            // Falls back to default (empty ref) when the origin has no NetworkObject.
+            NetworkObjectReference sourceRef = default;
+            if (origin.TryGetComponent<NetworkObject>(out var originNetObj))
+                sourceRef = new NetworkObjectReference(originNetObj);
+
+            projectile.InitializeClientRpc(
+                damage:          finalDamage,
+                sourceRef:       sourceRef,
+                direction:       direction,
+                speed:           attackDefinition.ProjectileSpeed,
+                elementType:     attackDefinition.ElementType,
+                elementStrength: attackDefinition.ElementStrength,
+                targetTag:       attackDefinition.ProjectileTargetTag
+            );
+        }
+        else
+        {
+            // Standalone / offline mode — no NGO session active.
+            // Local Destroy timer replaces the server lifetime coroutine.
+            var elementApplication = new ElementApplication(
+                element:  attackDefinition.ElementType,
+                strength: attackDefinition.ElementStrength,
+                source:   origin.gameObject
+            );
+
+            projectile.Initialize(
+                damage:             finalDamage,
+                source:             origin.gameObject,
+                direction:          direction,
+                speed:              attackDefinition.ProjectileSpeed,
+                elementApplication: elementApplication,
+                targetTag:          attackDefinition.ProjectileTargetTag
+            );
+        }
 
         Debug.Log($"[ProjectileAttackExecutor] '{origin.name}' fired '{attackDefinition.AttackId}'.");
 

@@ -45,6 +45,11 @@ public class SessionManager : MonoBehaviour
         Instance = this;
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     // -------------------------------------------------------------------------
     // Host — creates the session and waits for clients
     // -------------------------------------------------------------------------

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7506deec82f0d874f8841d4d7c085870, type: 3}
+  m_Name: RollerData
+  m_EditorClassIdentifier:
+  enemyName: Roller
+  maxHealth: 120
+  moveSpeed: 5
+  attackRange: 1.2
+  attackDefinition: {fileID: 11400000, guid: b6c1d61e3f5445c18c0a1ea5d3d1dd45, type: 2}
+  healthScalingPerLevel: 0.1
+  moveSpeedScalingPerLevel: 0.04
+  damageScalingPerLevel: 0.08
+  attackSpeedScalingPerLevel: 0

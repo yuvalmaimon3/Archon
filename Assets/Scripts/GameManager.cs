@@ -28,6 +28,14 @@ public class GameManager : MonoBehaviour
         Instance = this;
     }
 
+    private void OnDestroy()
+    {
+        // Clear singleton reference so a new scene's GameManager can take over.
+        // Only clear if WE are the current instance — avoids the duplicate wiping
+        // the new instance during the destroy-on-collision path.
+        if (Instance == this) Instance = null;
+    }
+
     /// <summary>
     /// Starts the game. Called by the Start button in DebugMenuUI.
     /// Sets IsGameStarted = true, which unlocks player movement and other systems.
