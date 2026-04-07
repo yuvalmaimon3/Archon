@@ -250,6 +250,18 @@ PrefabInstance:
       propertyPath: m_IsTrigger
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1290987537558480332, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
+      propertyPath: m_Height
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1290987537558480332, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
+      propertyPath: m_Center.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1290987537558480332, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
+      propertyPath: m_Radius
+      value: 0.6
+      objectReference: {fileID: 0}
     - target: {fileID: 949350550131415999, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -367,10 +379,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   playerTag: Player
-  retreatDistance: 4
-  orbitDistance: 8
-  hoverHeight: 2.5
-  strafeFlipInterval: 3
+  hoverHeight: 0
 --- !u!4 &9076957941491185253 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 949350550131415999, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
