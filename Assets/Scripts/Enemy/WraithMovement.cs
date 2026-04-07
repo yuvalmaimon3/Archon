@@ -82,6 +82,15 @@ public class WraithMovement : EnemyMovementBase
         _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 
+    // Stop movement immediately on death — disables this component so Update stops running.
+    // Without this override the Wraith keeps chasing for the DeathController destroy delay.
+    protected override void OnDeathCleanup()
+    {
+        enabled = false;
+        _rb.linearVelocity = Vector3.zero;
+        Debug.Log($"[WraithMovement] '{name}' movement stopped on death.");
+    }
+
     // Knockback: switch to physical mode so forces can be applied.
     protected override void OnKnockbackStart()
     {
