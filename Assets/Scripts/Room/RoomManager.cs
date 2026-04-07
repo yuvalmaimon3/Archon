@@ -38,6 +38,12 @@ public class RoomManager : NetworkBehaviour
     [Tooltip("Seconds to pause between rounds before spawning the next batch.")]
     [SerializeField] [Min(0f)] private float _betweenRoundDelay = 2f;
 
+    [Header("EXP Reward")]
+    [Tooltip("EXP granted to each alive player when all rounds are complete. " +
+             "If this pushes a player past a level threshold the upgrade dialog appears " +
+             "before the gate opens.")]
+    [SerializeField] [Min(0)] private int _expRewardPerRoom = 25;
+
     // ── NetworkVariables ──────────────────────────────────────────────────────
 
     // Current round number (1-based). Clients read this for UI display.
@@ -83,8 +89,11 @@ public class RoomManager : NetworkBehaviour
 
     // ── Private server-side state ─────────────────────────────────────────────
 
-    // Set by SetUpgradeRequired() when the player leveled up during this room.
-    private bool _upgradeRequired;
+    // How many players still need to pick an upgrade before the gate opens.
+    // Incremented by SetUpgradeRequired() for each player who leveled up.
+    // Decremented by NotifyUpgradeChosen() when a player finishes their selection.
+    // Gate opens when this reaches 0 after all rounds are done.
+    private int _pendingUpgradeChoices;
 
     // Prevents re-completion if something triggers FinishAllRounds twice.
     private bool _allRoundsFinished;
@@ -124,8 +133,9 @@ public class RoomManager : NetworkBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    // Called by an external system (e.g. PlayerLevelSystem) on the server when the player levels up.
-    // Must be called before all rounds finish to gate the room completion behind an upgrade choice.
+    // Called once per player who leveled up during this room.
+    // Increments the pending counter so the gate waits for that many upgrade picks.
+    // Must be called before _allRoundsFinished is set (i.e. from GrantExpToAlivePlayers).
     public void SetUpgradeRequired()
     {
         if (!IsServer) return;
@@ -136,26 +146,26 @@ public class RoomManager : NetworkBehaviour
             return;
         }
 
-        _upgradeRequired = true;
-        Debug.Log("[RoomManager] Upgrade flagged — gate will wait for upgrade choice.");
+        _pendingUpgradeChoices++;
+        Debug.Log($"[RoomManager] Upgrade pending — {_pendingUpgradeChoices} player(s) need to choose.");
     }
 
-    // Called by the upgrade UI (on the server) once the player picks an upgrade.
-    // If all rounds are done and we were waiting, this completes the room.
+    // Called by PlayerUpgradeHandler (via ServerRpc) once a player picks their upgrade.
+    // When the last pending choice is resolved the room completes and the gate opens.
     public void NotifyUpgradeChosen()
     {
         if (!IsServer) return;
 
-        if (!_upgradeRequired)
+        if (_pendingUpgradeChoices <= 0)
         {
             Debug.LogWarning("[RoomManager] NotifyUpgradeChosen called but no upgrade was pending.");
             return;
         }
 
-        _upgradeRequired = false;
-        Debug.Log("[RoomManager] Upgrade chosen.");
+        _pendingUpgradeChoices--;
+        Debug.Log($"[RoomManager] Upgrade chosen — {_pendingUpgradeChoices} remaining.");
 
-        if (_allRoundsFinished && _state.Value == RoomState.WaitingForUpgrade)
+        if (_pendingUpgradeChoices == 0 && _allRoundsFinished && _state.Value == RoomState.WaitingForUpgrade)
             CompleteRoom();
     }
 
@@ -236,21 +246,61 @@ public class RoomManager : NetworkBehaviour
     // Called once all rounds finish on the server.
     private void FinishAllRounds()
     {
+        // Grant EXP BEFORE setting _allRoundsFinished so SetUpgradeRequired() is still valid.
+        // If any alive player levels up, _pendingUpgradeChoices is incremented here.
+        GrantExpToAlivePlayers();
+
         _allRoundsFinished = true;
 
         Debug.Log("[RoomManager] All rounds complete.");
         NotifyAllRoundsCompleteClientRpc();
 
-        if (_upgradeRequired)
+        if (_pendingUpgradeChoices > 0)
         {
             _state.Value = RoomState.WaitingForUpgrade;
-            Debug.Log("[RoomManager] Waiting for upgrade selection.");
+            Debug.Log($"[RoomManager] Waiting for {_pendingUpgradeChoices} upgrade selection(s).");
             NotifyUpgradeRequiredClientRpc();
         }
         else
         {
             CompleteRoom();
         }
+    }
+
+    // Grants _expRewardPerRoom EXP to every alive player in the scene.
+    // If a player's EXP crosses a level threshold, PlayerLevelSystem fires OnLevelUp
+    // which causes PlayerUpgradeHandler to show the upgrade dialog and eventually call
+    // NotifyUpgradeChosen(). We increment _pendingUpgradeChoices here for each level-up
+    // so the gate knows how many players still need to choose.
+    private void GrantExpToAlivePlayers()
+    {
+        if (_expRewardPerRoom <= 0) return;
+
+        var players = FindObjectsByType<PlayerLevelSystem>(FindObjectsSortMode.None);
+
+        foreach (var player in players)
+        {
+            // Only alive players receive EXP — a player could die on the same frame
+            // as the last enemy kill, so we must check IsDead explicitly.
+            if (player.TryGetComponent<Health>(out var health) && health.IsDead)
+            {
+                Debug.Log($"[RoomManager] Skipping EXP for dead player '{player.name}'.");
+                continue;
+            }
+
+            int levelBefore = player.CurrentLevel;
+
+            player.AddExperience(_expRewardPerRoom);
+
+            // If the player leveled up, flag that they need to pick an upgrade.
+            // PlayerUpgradeHandler.HandleLevelUp will call NotifyUpgradeChosen() via ServerRpc
+            // after the player makes their selection.
+            if (player.CurrentLevel > levelBefore)
+                SetUpgradeRequired();
+        }
+
+        Debug.Log($"[RoomManager] Granted {_expRewardPerRoom} EXP to alive players. " +
+                  $"Pending upgrade choices: {_pendingUpgradeChoices}");
     }
 
     // Final step — marks room complete and notifies all clients (gate opens, transition begins).

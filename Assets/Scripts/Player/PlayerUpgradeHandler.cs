@@ -1,0 +1,244 @@
+using Unity.Netcode;
+using UnityEngine;
+
+// Bridges PlayerLevelSystem level-up events to the upgrade selection UI and
+// applies the chosen upgrade on the server.
+//
+// Network split:
+//   Client (owner) — receives OnLevelUp via ClientRpc, shows UpgradeSelectionUI
+//                    only on the machine that controls this player.
+//   Server         — receives the chosen upgrade index via ServerRpc, applies
+//                    the stat effect, and notifies RoomManager that this player
+//                    has finished choosing.
+//
+// In co-op each player independently sees their own upgrade dialog on their own screen.
+// RoomManager tracks a counter (_pendingUpgradeChoices) so the gate waits for all
+// players who leveled up before opening.
+public class PlayerUpgradeHandler : NetworkBehaviour
+{
+    // ── Inspector ─────────────────────────────────────────────────────────────
+
+    [Header("Upgrades")]
+    [Tooltip("Pool of all available upgrades. Assign the shared UpgradePool asset here.")]
+    [SerializeField] private UpgradePool _upgradePool;
+
+    [Tooltip("How many upgrade options to present at level-up.")]
+    [SerializeField] [Min(1)] private int _choiceCount = 3;
+
+    // ── Component references ─────────────────────────────────────────────────
+
+    private PlayerLevelSystem  _levelSystem;
+    private Health             _health;
+    private NetworkHealthSync  _healthSync;
+    private AttackController[] _attackControllers;
+    private PlayerMovement     _movement;
+
+    // ── Runtime state ────────────────────────────────────────────────────────
+
+    // The random selection currently presented to the owner — used to map the
+    // button index back to the pool index when the ServerRpc is sent.
+    private UpgradeDefinition[] _pendingChoices;
+
+    // Cached on the server so we don't call FindFirstObjectByType every upgrade.
+    private RoomManager _roomManager;
+
+    // ── Unity lifecycle ──────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        _levelSystem       = GetComponent<PlayerLevelSystem>();
+        _health            = GetComponent<Health>();
+        _healthSync        = GetComponent<NetworkHealthSync>();
+        _attackControllers = GetComponents<AttackController>();
+        _movement          = GetComponent<PlayerMovement>();
+
+        if (_levelSystem == null)
+            Debug.LogError($"[PlayerUpgradeHandler] No PlayerLevelSystem on '{name}'.", this);
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        // Subscribe to level-up on all clients — the handler checks IsOwner internally
+        if (_levelSystem != null)
+            _levelSystem.OnLevelUp += HandleLevelUp;
+
+        // Cache RoomManager reference on the server (only the server calls NotifyUpgradeChosen)
+        if (IsServer)
+            _roomManager = FindFirstObjectByType<RoomManager>();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (_levelSystem != null)
+            _levelSystem.OnLevelUp -= HandleLevelUp;
+    }
+
+    // ── Level-up flow ─────────────────────────────────────────────────────────
+
+    // Fires on ALL clients (triggered by PlayerLevelSystem.TriggerLevelUpEffectsClientRpc).
+    // Only the owning client shows the selection UI — others ignore this call.
+    private void HandleLevelUp(int newLevel)
+    {
+        if (!IsOwner) return;
+
+        Debug.Log($"[PlayerUpgradeHandler] '{name}' reached level {newLevel} — showing upgrade dialog.");
+
+        // No pool or no upgrades → skip selection, still notify server so the gate can open
+        if (_upgradePool == null || _upgradePool.upgrades.Length == 0)
+        {
+            Debug.LogWarning("[PlayerUpgradeHandler] No UpgradePool assigned — skipping upgrade selection.");
+            SkipUpgradeServerRpc();
+            return;
+        }
+
+        // Pick a random subset of upgrades to present
+        _pendingChoices = _upgradePool.GetRandomSelection(_choiceCount);
+
+        // Find the upgrade dialog in the scene and show it
+        var ui = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
+
+        if (ui != null)
+        {
+            ui.Show(_pendingChoices, OnUpgradeChosen);
+        }
+        else
+        {
+            // No UI in scene — auto-pick the first option so the gate isn't permanently blocked
+            Debug.LogWarning("[PlayerUpgradeHandler] No UpgradeSelectionUI found — auto-choosing first upgrade.");
+            OnUpgradeChosen(0);
+        }
+    }
+
+    // Called by UpgradeSelectionUI when the player clicks a button.
+    // Sends the pool index to the server for authoritative application.
+    private void OnUpgradeChosen(int choiceIndex)
+    {
+        if (_pendingChoices == null || choiceIndex < 0 || choiceIndex >= _pendingChoices.Length)
+        {
+            Debug.LogWarning("[PlayerUpgradeHandler] Invalid choice index — skipping.");
+            SkipUpgradeServerRpc();
+            return;
+        }
+
+        int poolIndex = _upgradePool.IndexOf(_pendingChoices[choiceIndex]);
+
+        if (poolIndex < 0)
+        {
+            Debug.LogWarning("[PlayerUpgradeHandler] Chosen upgrade not found in pool — skipping.");
+            SkipUpgradeServerRpc();
+            return;
+        }
+
+        ApplyUpgradeServerRpc(poolIndex);
+    }
+
+    // ── ServerRpcs ────────────────────────────────────────────────────────────
+
+    // Owner sends the chosen pool index to the server. Server applies the effect and
+    // decrements the room manager's pending upgrade counter.
+    [ServerRpc]
+    private void ApplyUpgradeServerRpc(int poolIndex)
+    {
+        if (_upgradePool == null || poolIndex < 0 || poolIndex >= _upgradePool.upgrades.Length)
+        {
+            Debug.LogError($"[PlayerUpgradeHandler] Invalid pool index {poolIndex} received on server.");
+            NotifyRoomUpgradeDone();
+            return;
+        }
+
+        var upgrade = _upgradePool.upgrades[poolIndex];
+
+        Debug.Log($"[PlayerUpgradeHandler] '{name}' applying upgrade: {upgrade.upgradeName}");
+
+        ApplyEffect(upgrade);
+
+        // Let all clients log / show a short feedback
+        NotifyUpgradeChosenClientRpc(upgrade.upgradeName);
+
+        NotifyRoomUpgradeDone();
+    }
+
+    // Called when the player skips (no pool configured, or UI missing).
+    // Still notifies the room manager so the gate isn't stuck waiting.
+    [ServerRpc]
+    private void SkipUpgradeServerRpc()
+    {
+        Debug.Log($"[PlayerUpgradeHandler] '{name}' upgrade skipped — notifying room manager.");
+        NotifyRoomUpgradeDone();
+    }
+
+    // ── ClientRpcs ────────────────────────────────────────────────────────────
+
+    // Logs the chosen upgrade on all clients (hook here for VFX / floating text later).
+    [ClientRpc]
+    private void NotifyUpgradeChosenClientRpc(string upgradeName)
+    {
+        Debug.Log($"[PlayerUpgradeHandler] '{name}' chose: {upgradeName}");
+        // TODO: play a short VFX or floating text "+{upgradeName}" above the player
+    }
+
+    // ── Upgrade application (server only) ────────────────────────────────────
+
+    // Applies the effect of the chosen upgrade directly to the player's components.
+    // Only runs on the server — all networked state is updated through existing sync paths.
+    private void ApplyEffect(UpgradeDefinition upgrade)
+    {
+        switch (upgrade.effectType)
+        {
+            case UpgradeEffectType.MaxHpFlat:
+            {
+                // Increase max HP and sync the new cap to all clients
+                int newMax = _health.MaxHealth + Mathf.Max(1, (int)upgrade.value);
+                _health.AdjustMaxHealth(newMax);
+                _healthSync?.UpdateSyncedMaxHealth(newMax);
+                Debug.Log($"[PlayerUpgradeHandler] MaxHP +{(int)upgrade.value} → {newMax}");
+                break;
+            }
+
+            case UpgradeEffectType.HealPercent:
+            {
+                // Restore a fraction of max HP (heal fires Health.OnDamaged which NetworkHealthSync catches)
+                int healAmount = Mathf.RoundToInt(_health.MaxHealth * upgrade.value);
+                _health.Heal(healAmount);
+                Debug.Log($"[PlayerUpgradeHandler] Healed {healAmount} HP ({upgrade.value * 100f:F0}% of max)");
+                break;
+            }
+
+            case UpgradeEffectType.DamagePercent:
+            {
+                // Compound the existing damage multiplier (works alongside PlayerLevelSystem's scaling)
+                foreach (var ac in _attackControllers)
+                {
+                    float newMult = ac.DamageMultiplier * (1f + upgrade.value);
+                    ac.SetDamageMultiplier(newMult);
+                    Debug.Log($"[PlayerUpgradeHandler] Damage ×{newMult:F3} on '{ac.gameObject.name}'");
+                }
+                break;
+            }
+
+            case UpgradeEffectType.MoveSpeedFlat:
+            {
+                if (_movement != null)
+                {
+                    _movement.AddSpeedBonus(upgrade.value);
+                    Debug.Log($"[PlayerUpgradeHandler] Move speed +{upgrade.value}");
+                }
+                break;
+            }
+
+            default:
+                Debug.LogWarning($"[PlayerUpgradeHandler] Unknown UpgradeEffectType: {upgrade.effectType}");
+                break;
+        }
+    }
+
+    // Tells the room manager that this player's upgrade selection is done.
+    // Server only — RoomManager.NotifyUpgradeChosen() decrements the pending counter.
+    private void NotifyRoomUpgradeDone()
+    {
+        if (_roomManager != null)
+            _roomManager.NotifyUpgradeChosen();
+        else
+            Debug.LogWarning("[PlayerUpgradeHandler] RoomManager not found — gate may not open.");
+    }
+}
