@@ -158,12 +158,10 @@ public class Health : MonoBehaviour, IDamageable
 
     // ── Revival ──────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Restores the entity to full health and clears the dead flag.
-    /// Called by the revive system (solo: revive item, co-op: room start).
-    /// Fires OnDamaged so health bars update, and OnRevived for VFX/audio hooks.
-    /// Does nothing if the entity is not currently dead.
-    /// </summary>
+    // Restores the entity to full health and clears the dead flag.
+    // Called by the revive system (solo: revive item, co-op: room start).
+    // Fires OnDamaged so health bars update, and OnRevived for VFX/audio hooks.
+    // Does nothing if the entity is not currently dead.
     public void Revive()
     {
         // Ignore if not dead — prevents accidental double-revive
@@ -181,13 +179,59 @@ public class Health : MonoBehaviour, IDamageable
         OnRevived?.Invoke();
     }
 
+
+    // ── Level-up support ─────────────────────────────────────────────────────
+
+    // Increases max health without resetting current health to full.
+    // Called by PlayerLevelSystem on level-up to grow the HP cap while preserving combat state.
+    // Current health is clamped to the new max in case it would exceed it (shouldn't happen
+    // on a level-up increase, but safe to guard).
+    public void AdjustMaxHealth(int newMax)
+    {
+        maxHealth      = Mathf.Max(1, newMax);
+        _currentHealth = Mathf.Clamp(_currentHealth, 0, maxHealth);
+
+        Debug.Log($"[Health] {gameObject.name} max health adjusted to {maxHealth} " +
+                  $"(current: {_currentHealth}).");
+
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
+    // Restores HP by the given amount, capped at maxHealth.
+    // Called by PlayerLevelSystem on level-up to partially refill health.
+    // Does nothing if the entity is already dead or the amount is zero or negative.
+    public void Heal(int amount)
+    {
+        if (IsDead || amount <= 0) return;
+
+        int prev       = _currentHealth;
+        _currentHealth = Mathf.Clamp(_currentHealth + amount, 0, maxHealth);
+
+        if (_currentHealth == prev) return;
+
+        Debug.Log($"[Health] {gameObject.name} healed {_currentHealth - prev} HP — " +
+                  $"{_currentHealth}/{maxHealth}.");
+
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
+    // Syncs both max and current health from the server without processing damage or death logic.
+    // Called by PlayerLevelSystem's ClientRpc so client Health components stay in sync after
+    // max health changes (e.g., level-up HP boost). Fires OnDamaged so health bars refresh.
+    public void ClientSync(int syncedMax, int syncedCurrent)
+    {
+        maxHealth      = Mathf.Max(1, syncedMax);
+        _currentHealth = Mathf.Clamp(syncedCurrent, 0, maxHealth);
+
+        OnDamaged?.Invoke(_currentHealth, maxHealth);
+    }
+
+
     // ── Test utilities ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Resets health to full and clears the dead flag.
-    /// Used by TestEnemyResetter in the TestReactions scene to allow continuous damage testing.
-    /// Not intended for production gameplay — use a proper respawn/revival system there.
-    /// </summary>
+    // Resets health to full and clears the dead flag.
+    // Used by TestEnemyResetter in the TestReactions scene to allow continuous damage testing.
+    // Not intended for production gameplay — use a proper respawn/revival system there.
     public void ResetHealth()
     {
         _currentHealth = maxHealth;
