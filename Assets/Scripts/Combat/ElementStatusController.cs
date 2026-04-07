@@ -138,7 +138,6 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
                 // Existing element survives — incoming is discarded
                 break;
 
-            case ReactionOutcomeType.KeepIncoming:
             case ReactionOutcomeType.ReplaceWithIncoming:
                 // Store the incoming element as the new state
                 CurrentElement  = incoming.Element;

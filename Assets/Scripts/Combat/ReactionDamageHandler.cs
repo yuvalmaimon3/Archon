@@ -66,6 +66,15 @@ public class ReactionDamageHandler : MonoBehaviour
 
         int reactionDamage = Mathf.RoundToInt(result.BaseDamage * reactionDamageMultiplier);
 
+        // Skip zero-damage reactions (e.g. pure element applications with baseDamage = 0).
+        // Avoids firing OnDamaged and running the full Health.TakeDamage pipeline for no effect.
+        if (reactionDamage <= 0)
+        {
+            Debug.Log($"[ReactionDamageHandler] {gameObject.name} — " +
+                      $"{result.ReactionType} reaction skipped (base damage was 0).");
+            return;
+        }
+
         Debug.Log($"[ReactionDamageHandler] {gameObject.name} — " +
                   $"{result.ReactionType} reaction! " +
                   $"Base damage: {result.BaseDamage} × {reactionDamageMultiplier} = {reactionDamage}");

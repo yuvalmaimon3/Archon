@@ -13,10 +13,7 @@ public enum ReactionOutcomeType
     /// <summary>The existing element is kept. The incoming element is discarded.</summary>
     KeepExisting,
 
-    /// <summary>The incoming element is stored as-is, replacing the existing one.</summary>
-    KeepIncoming,
-
-    /// <summary>Explicitly replaces the existing element with the incoming element and its strength.</summary>
+    /// <summary>Replaces the existing element with the incoming element and its strength.</summary>
     ReplaceWithIncoming,
 
     /// <summary>

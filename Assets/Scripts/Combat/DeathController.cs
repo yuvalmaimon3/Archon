@@ -54,19 +54,42 @@ public class DeathController : MonoBehaviour
     /// </summary>
     public event Action OnDied;
 
+    /// <summary>
+    /// Fired once when this entity is revived.
+    /// Subscribe here for revive animation, VFX, or any system that reacts
+    /// to the entity returning to a live state.
+    /// </summary>
+    public event Action OnRevived;
+
     // ── Private state ────────────────────────────────────────────────────────
 
     private Health _health;
+    private Rigidbody _rigidbody;
+    private IDeathHandler[] _deathHandlers;
 
     // Guards against double-execution: HandleDeath can be called via Health.OnDeath
     // (server) or TriggerDeath (client via NetworkDeathSync RPC). Only runs once.
     private bool _isDead;
+
+    // Saved in Awake so TriggerRevive() can restore the correct tag after death
+    // sets it to "Untagged". e.g. "Player", "Enemy"
+    private string _originalTag;
+
+    // Saved just before HandleDeath freezes the Rigidbody so TriggerRevive() can
+    // restore the exact pre-death kinematic state.
+    // Server: false (physics active). Clients: true (NetworkTransform drives position).
+    private bool _wasKinematicBeforeDeath;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
         _health = GetComponent<Health>();
+        _rigidbody = GetComponent<Rigidbody>();
+        _deathHandlers = GetComponentsInChildren<IDeathHandler>();
+
+        // Capture tag before any death sequence can overwrite it
+        _originalTag = gameObject.tag;
     }
 
     private void OnEnable()
@@ -91,6 +114,46 @@ public class DeathController : MonoBehaviour
         HandleDeath(default);
     }
 
+    /// <summary>
+    /// Reverses the death state — the counterpart to TriggerDeath().
+    /// Re-enables all scripts, renderers, and colliders that were disabled on death,
+    /// restores the original tag so enemies can target the player again,
+    /// and restores the Rigidbody to its pre-death kinematic state.
+    ///
+    /// Called by NetworkReviveSync on both server and clients after revive is authorized.
+    /// Health.Revive() must be called separately to restore HP and clear IsDead.
+    ///
+    /// Trigger paths:
+    ///   Solo    — revive item uses this via NetworkReviveSync.RequestReviveServerRpc()
+    ///   Co-op   — room-start event uses this via NetworkReviveSync.RequestReviveServerRpc()
+    ///
+    /// Safe to call multiple times — _isDead guard prevents double-execution.
+    /// </summary>
+    public void TriggerRevive()
+    {
+        // Only run if actually dead — prevents double-execution when the ClientRpc
+        // arrives on the host that already ran this via ExecuteReviveOnServer()
+        if (!_isDead) return;
+        _isDead = false;
+
+        // Re-enable all components that were disabled on death
+        SetComponentsActive(true);
+
+        // Restore original tag so enemies can find and target the player again
+        gameObject.tag = _originalTag;
+
+        // Restore Rigidbody to pre-death kinematic state:
+        //   Server: was false → un-freeze so movement works again
+        //   Clients: was true → stays kinematic, NetworkTransform drives position
+        if (_rigidbody != null)
+            _rigidbody.isKinematic = _wasKinematicBeforeDeath;
+
+        Debug.Log($"[DeathController] '{name}' revived — tag:'{_originalTag}'.");
+
+        // Notify external systems (animation, VFX, audio)
+        OnRevived?.Invoke();
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -105,51 +168,34 @@ public class DeathController : MonoBehaviour
         _isDead = true;
 
         // Step 1 — custom per-component cleanup (clear targets, stop coroutines, etc.)
-        var handlers = GetComponentsInChildren<IDeathHandler>();
-        foreach (var handler in handlers)
+        foreach (var handler in _deathHandlers)
             handler.OnDeath();
 
-        // Step 2 — disable scripts/behaviours (stops Update loops, coroutines, etc.)
-        int scriptCount = 0;
-        if (_disableOnDeath != null)
-            foreach (var mb in _disableOnDeath)
-                if (mb != null) { mb.enabled = false; scriptCount++; }
+        // Step 2 — disable scripts, renderers, and colliders
+        SetComponentsActive(false);
 
-        // Step 3 — hide renderers (body disappears until death animation is added)
-        int rendererCount = 0;
-        if (_disableRenderers != null)
-            foreach (var r in _disableRenderers)
-                if (r != null) { r.enabled = false; rendererCount++; }
-
-        // Step 4 — disable colliders so projectiles pass through the corpse
-        int colliderCount = 0;
-        if (_disableColliders != null)
-            foreach (var col in _disableColliders)
-                if (col != null) { col.enabled = false; colliderCount++; }
-
-        // Step 5 — remove entity tag so targeting systems skip the corpse immediately.
+        // Step 3 — remove entity tag so targeting systems skip the corpse immediately.
         // FindGameObjectsWithTag("Enemy") / FindGameObjectWithTag("Player") return null
         // for this object from here on — cheaper than a per-frame IsDead check.
         gameObject.tag = "Untagged";
 
-        // Step 6 — freeze physics: kinematic stops gravity and forces so the corpse
+        // Step 4 — freeze physics: kinematic stops gravity and forces so the corpse
         // stays exactly where it died. Rigidbody is kept available for future ragdoll.
-        var rb = GetComponent<Rigidbody>();
-        if (rb != null)
+        // Save kinematic state first so TriggerRevive() can restore it correctly.
+        if (_rigidbody != null)
         {
-            rb.linearVelocity  = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.isKinematic     = true;
+            _wasKinematicBeforeDeath = _rigidbody.isKinematic;
+            _rigidbody.linearVelocity  = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic     = true;
         }
 
-        Debug.Log($"[DeathController] '{name}' ghost state — " +
-                  $"handlers:{handlers.Length} scripts:{scriptCount} " +
-                  $"renderers:{rendererCount} colliders:{colliderCount}.");
+        Debug.Log($"[DeathController] '{name}' ghost state — handlers:{_deathHandlers.Length}.");
 
-        // Step 7 — notify external systems (animation, VFX, loot, etc.)
+        // Step 5 — notify external systems (animation, VFX, loot, etc.)
         OnDied?.Invoke();
 
-        // Step 8 — schedule destruction
+        // Step 6 — schedule destruction
         if (_autoDestroy)
             ScheduleDestruction();
     }
@@ -180,10 +226,25 @@ public class DeathController : MonoBehaviour
         Destroy(gameObject, _destroyDelay);
     }
 
-    /// <summary>
-    /// Waits for _destroyDelay seconds then despawns the NetworkObject.
-    /// NGO propagates the destroy to all connected clients automatically.
-    /// </summary>
+    // Enables or disables all scripts, renderers, and colliders tracked in the Inspector arrays.
+    // Used by both HandleDeath (false) and TriggerRevive (true) to avoid duplicating the same loops.
+    private void SetComponentsActive(bool active)
+    {
+        if (_disableOnDeath != null)
+            foreach (var mb in _disableOnDeath)
+                if (mb != null) mb.enabled = active;
+
+        if (_disableRenderers != null)
+            foreach (var r in _disableRenderers)
+                if (r != null) r.enabled = active;
+
+        if (_disableColliders != null)
+            foreach (var col in _disableColliders)
+                if (col != null) col.enabled = active;
+    }
+
+    // Waits for _destroyDelay seconds then despawns the NetworkObject.
+    // NGO propagates the destroy to all connected clients automatically.
     private IEnumerator DespawnAfterDelay(NetworkObject netObj)
     {
         yield return new WaitForSeconds(_destroyDelay);

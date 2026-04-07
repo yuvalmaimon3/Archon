@@ -25,6 +25,8 @@ public class NetworkDeathSync : NetworkBehaviour
 {
     // Authoritative health value replicated server → all clients.
     // Clients read it; only the server writes.
+    // Only used when no NetworkHealthSync is present — avoids double-syncing
+    // the same value through two NetworkVariables.
     private readonly NetworkVariable<int> _syncedHealth = new NetworkVariable<int>(
         0,
         NetworkVariableReadPermission.Everyone,
@@ -34,12 +36,20 @@ public class NetworkDeathSync : NetworkBehaviour
     private Health _health;
     private DeathController _deathController;
 
+    // True when NetworkHealthSync is handling health replication on the same object.
+    // When true, this component only handles death sync and skips health sync entirely.
+    private bool _healthSyncedExternally;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
         _health = GetComponent<Health>();
         _deathController = GetComponent<DeathController>();
+
+        // If NetworkHealthSync is present, it already owns a NetworkVariable for health.
+        // Skip our own health sync to avoid double-replication and wasted bandwidth.
+        _healthSyncedExternally = GetComponent<NetworkHealthSync>() != null;
     }
 
     // ── NGO lifecycle ────────────────────────────────────────────────────────
@@ -52,14 +62,16 @@ public class NetworkDeathSync : NetworkBehaviour
     {
         if (IsServer)
         {
-            // Push the initial health so clients start in the correct state
-            // (important for late-joining clients and in-scene placed enemies).
-            _syncedHealth.Value = _health.CurrentHealth;
+            // Only sync health ourselves if no NetworkHealthSync is handling it
+            if (!_healthSyncedExternally)
+            {
+                _syncedHealth.Value = _health.CurrentHealth;
+                _health.OnDamaged += OnServerHealthChanged;
+            }
 
-            _health.OnDamaged += OnServerHealthChanged;
-            _health.OnDeath   += OnServerDeath;
+            _health.OnDeath += OnServerDeath;
         }
-        else
+        else if (!_healthSyncedExternally)
         {
             // React to server health pushes — keeps health bars current on clients.
             _syncedHealth.OnValueChanged += OnClientHealthSynced;
@@ -77,10 +89,12 @@ public class NetworkDeathSync : NetworkBehaviour
     {
         if (IsServer)
         {
-            _health.OnDamaged -= OnServerHealthChanged;
-            _health.OnDeath   -= OnServerDeath;
+            if (!_healthSyncedExternally)
+                _health.OnDamaged -= OnServerHealthChanged;
+
+            _health.OnDeath -= OnServerDeath;
         }
-        else
+        else if (!_healthSyncedExternally)
         {
             _syncedHealth.OnValueChanged -= OnClientHealthSynced;
         }
