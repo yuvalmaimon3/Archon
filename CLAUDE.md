@@ -47,6 +47,10 @@ Write production-quality Unity C# code as a professional.
 ## Output
 - Output clean, concise, and efficient code suitable for real game development.
 
+## Game Design Decisions
+- Never make in-game design decisions (which upgrades exist, their values, game balance, content) without asking first. Structural/technical decisions (canvas hierarchy, component wiring, code architecture) are fine to decide independently.
+- Never create gameplay effects, VFX, audio, or content assets unless explicitly asked.
+
 
 ## git
 - If you modified files, at the end of the task automatically run:
