@@ -1,25 +1,31 @@
+using Unity.Netcode;
 using UnityEngine;
 
-// Applies an AoE explosion to all enemies within blastRadius whenever any reaction occurs.
-// Added to the player GameObject server-side when the Blast Reaction upgrade is chosen.
+// Listens for reactions and spawns a ReactionExplosion prefab at the reaction position.
+// The prefab owns all explosion behaviour: damage, knockback, VFX, and lifetime.
 //
-// Network: MonoBehaviour — this component is only ever added on the server
-//          (PlayerUpgradeHandler.ApplyEffect runs inside ApplyUpgradeServerRpc).
-//          ReactionDamageHandler.OnAnyReactionDamage also fires server-side only,
-//          so all damage applied here stays server-authoritative.
+// Added to the player GameObject server-side when the Blast Reaction upgrade is chosen.
+// Network: MonoBehaviour — only runs on the server (ApplyUpgradeServerRpc guard).
+//          The explosion prefab is a NetworkObject and replicates to all clients for VFX.
 public class BlastReactionUpgradeEffect : MonoBehaviour
 {
-    [Header("Blast Settings")]
-    [Tooltip("Radius in world units around the reaction position that the explosion reaches.")]
-    [SerializeField] private float _blastRadius = 2f;
+    // ── Config (set via SetConfig before use) ─────────────────────────────────
 
-    [Tooltip("Tag used to identify enemy GameObjects.")]
-    [SerializeField] private string _enemyTag = "Enemy";
+    // Prefab that contains ReactionExplosion + NetworkObject + particle systems.
+    // Assigned from the UpgradeDefinition.effectPrefab field via SetConfig().
+    private ReactionExplosion _explosionPrefab;
+
+    // Radius passed to ReactionExplosion.InitializeServer each spawn.
+    private float _blastRadius = 2f;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    // Called by PlayerUpgradeHandler to set the radius from the UpgradeDefinition asset value.
-    public void SetRadius(float radius) => _blastRadius = radius;
+    // Called by PlayerUpgradeHandler after AddComponent to configure this effect.
+    public void SetConfig(ReactionExplosion prefab, float blastRadius)
+    {
+        _explosionPrefab = prefab;
+        _blastRadius     = blastRadius;
+    }
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -33,36 +39,27 @@ public class BlastReactionUpgradeEffect : MonoBehaviour
         ReactionDamageHandler.OnAnyReactionDamage -= HandleBlast;
     }
 
-    // ── Blast logic ───────────────────────────────────────────────────────────
+    // ── Blast spawn ───────────────────────────────────────────────────────────
 
-    // Fired when any enemy on the server triggers a reaction.
-    // Deals reactionDamage to every enemy collider within _blastRadius of the reaction position.
-    // Uses element-free DamageInfo so the explosion cannot trigger further reactions.
+    // Fires server-side when any enemy triggers a reaction.
+    // Instantiates and spawns the explosion prefab — clients receive it via NGO
+    // and play the VFX. Damage is applied inside ReactionExplosion.OnNetworkSpawn.
     private void HandleBlast(Vector3 reactionPosition, int reactionDamage)
     {
-        Collider[] hits = Physics.OverlapSphere(reactionPosition, _blastRadius);
-
-        int hitCount = 0;
-        foreach (var hit in hits)
+        if (_explosionPrefab == null)
         {
-            if (!hit.CompareTag(_enemyTag)) continue;
-            if (!hit.TryGetComponent<IDamageable>(out var damageable)) continue;
-
-            Vector3 dir = (hit.transform.position - reactionPosition).normalized;
-
-            var damageInfo = new DamageInfo(
-                amount:             reactionDamage,
-                source:             gameObject,
-                hitPoint:           hit.ClosestPoint(reactionPosition),
-                hitDirection:       dir,
-                elementApplication: default   // no element — prevents reaction chain
-            );
-
-            damageable.TakeDamage(damageInfo);
-            hitCount++;
+            Debug.LogWarning("[BlastReactionUpgradeEffect] No explosion prefab assigned — blast skipped.");
+            return;
         }
 
-        Debug.Log($"[BlastReactionUpgradeEffect] Blast at {reactionPosition} " +
-                  $"(radius:{_blastRadius}, damage:{reactionDamage}) hit {hitCount} enemy/enemies.");
+        var explosion = Instantiate(_explosionPrefab, reactionPosition, Quaternion.identity);
+
+        // Pass damage and radius before Spawn so OnNetworkSpawn can apply them immediately.
+        explosion.InitializeServer(reactionDamage, _blastRadius);
+
+        explosion.NetworkObject.Spawn();
+
+        Debug.Log($"[BlastReactionUpgradeEffect] Spawned explosion at {reactionPosition} " +
+                  $"(radius:{_blastRadius}, damage:{reactionDamage}).");
     }
 }

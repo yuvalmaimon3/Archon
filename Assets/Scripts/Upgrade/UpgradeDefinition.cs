@@ -47,6 +47,10 @@ public class UpgradeDefinition : ScriptableObject
     [Tooltip("Which stat this upgrade improves.")]
     public UpgradeEffectType effectType = UpgradeEffectType.MaxHpFlat;
 
+    [Tooltip("Prefab spawned by upgrades that create a world object on activation " +
+             "(e.g. BlastReaction spawns a ReactionExplosion). Leave empty for stat-only upgrades.")]
+    public GameObject effectPrefab;
+
     [Tooltip("Magnitude of the effect. Meaning depends on effectType:\n" +
              "  MaxHpFlat          → flat HP added (e.g. 20)\n" +
              "  HealPercent        → fraction of max HP healed (e.g. 0.5 = 50%)\n" +

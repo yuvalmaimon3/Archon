@@ -245,11 +245,18 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
             case UpgradeEffectType.BlastReaction:
             {
-                // Add BlastReactionUpgradeEffect if not already present, then set the radius.
+                // Add BlastReactionUpgradeEffect if not already present, then configure it.
                 // value = blast radius in world units (e.g. 2).
+                // effectPrefab = ReactionExplosion prefab assigned in the UpgradeDefinition asset.
+                if (upgrade.effectPrefab == null || !upgrade.effectPrefab.TryGetComponent<ReactionExplosion>(out var explosionPrefab))
+                {
+                    Debug.LogError("[PlayerUpgradeHandler] BlastReaction upgrade has no ReactionExplosion prefab assigned.");
+                    break;
+                }
+
                 var blast = gameObject.GetComponent<BlastReactionUpgradeEffect>()
                             ?? gameObject.AddComponent<BlastReactionUpgradeEffect>();
-                blast.SetRadius(upgrade.value);
+                blast.SetConfig(explosionPrefab, upgrade.value);
                 Debug.Log($"[PlayerUpgradeHandler] Blast Reaction enabled — radius:{upgrade.value}u");
                 break;
             }

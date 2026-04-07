@@ -17,4 +17,5 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 4
   effectType: 6
+  effectPrefab: {fileID: 7984123677375021487, guid: f6de68ca12011324496f795441afdfad, type: 3}
   value: 2
