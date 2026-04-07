@@ -12,7 +12,13 @@ using UnityEngine;
 ///   - All machines fire OnHealthChanged (C# event) when the value changes.
 ///   - The Healthbar subscribes to OnHealthChanged — zero polling, event-driven.
 ///
-/// Why not embed a NetworkVariable directly in Health?
+/// Max health sync:
+///   - _syncedMaxHealth mirrors Health.maxHealth across all clients.
+///   - Required because maxHealth can change at runtime (e.g., player level-up).
+///   - Clients update their local Health component when _syncedMaxHealth changes so
+///     the Healthbar always computes the correct fill ratio.
+///
+/// Why not embed NetworkVariables directly in Health?
 ///   Health.cs is used for non-networked entities (enemies, destructibles).
 ///   Mixing NGO into Health would force every damageable object to carry a NetworkObject.
 ///   This component keeps the networking concern separate and opt-in.
@@ -22,8 +28,15 @@ public class NetworkHealthSync : NetworkBehaviour
 {
     private Health _health;
 
-    // Server writes; all clients read. Default 0 is overwritten in OnNetworkSpawn.
+    // Authoritative current health — server writes, all clients read.
     private readonly NetworkVariable<int> _syncedHealth = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    // Authoritative max health — server writes, all clients read.
+    // Allows runtime max-health changes (level-up HP boost) to propagate to all clients.
+    private readonly NetworkVariable<int> _syncedMaxHealth = new NetworkVariable<int>(
         0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
@@ -34,10 +47,10 @@ public class NetworkHealthSync : NetworkBehaviour
     public int CurrentHealth => _syncedHealth.Value;
 
     /// <summary>
-    /// Max health from the local Health component.
-    /// Not synced — all clients share the same prefab so the value is always identical.
+    /// Max health synced from the server.
+    /// Falls back to the local Health component before the NetworkObject is spawned.
     /// </summary>
-    public int MaxHealth => _health != null ? _health.MaxHealth : 0;
+    public int MaxHealth => IsSpawned ? _syncedMaxHealth.Value : (_health != null ? _health.MaxHealth : 0);
 
     // ── Events ───────────────────────────────────────────────────────────────
 
@@ -59,14 +72,15 @@ public class NetworkHealthSync : NetworkBehaviour
 
     /// <summary>
     /// Called on all machines when the NetworkObject is spawned.
-    /// Server initializes the synced value; all machines subscribe to future changes.
+    /// Server initializes the synced values; all machines subscribe to future changes.
     /// </summary>
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
-            // Initialize at full health — only the server owns the write permission.
-            _syncedHealth.Value = _health.MaxHealth;
+            // Initialize at full health and current max — only the server owns write permission.
+            _syncedHealth.Value    = _health.MaxHealth;
+            _syncedMaxHealth.Value = _health.MaxHealth;
 
             // Subscribe to local damage events. Only the server calls TakeDamage
             // (Projectile.OnTriggerEnter has an IsServer guard), so this is server-only.
@@ -74,13 +88,15 @@ public class NetworkHealthSync : NetworkBehaviour
         }
 
         // All machines react to replicated value changes.
-        _syncedHealth.OnValueChanged += OnSyncedValueChanged;
+        _syncedHealth.OnValueChanged    += OnSyncedHealthChanged;
+        _syncedMaxHealth.OnValueChanged += OnSyncedMaxHealthChanged;
 
         // Fire once immediately so any subscriber that registered before spawn gets the
         // current state. Also handles late-joining clients whose initial value is already non-max.
         OnHealthChanged?.Invoke(_syncedHealth.Value, MaxHealth);
 
-        Debug.Log($"[NetworkHealthSync] '{name}' spawned — health:{_syncedHealth.Value}/{MaxHealth}, IsServer:{IsServer}");
+        Debug.Log($"[NetworkHealthSync] '{name}' spawned — " +
+                  $"health:{_syncedHealth.Value}/{_syncedMaxHealth.Value}, IsServer:{IsServer}");
     }
 
     /// <summary>Called on all machines when the NetworkObject is despawned.</summary>
@@ -89,15 +105,28 @@ public class NetworkHealthSync : NetworkBehaviour
         if (IsServer)
             _health.OnDamaged -= OnDamagedServer;
 
-        _syncedHealth.OnValueChanged -= OnSyncedValueChanged;
+        _syncedHealth.OnValueChanged    -= OnSyncedHealthChanged;
+        _syncedMaxHealth.OnValueChanged -= OnSyncedMaxHealthChanged;
+    }
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Updates the synced max health value so all clients reflect the new cap.
+    /// Call this on the server whenever Health.maxHealth changes (e.g., player level-up).
+    /// Clients will receive the change and update their local Health component via
+    /// OnSyncedMaxHealthChanged, keeping Healthbar fill ratios correct everywhere.
+    /// </summary>
+    public void UpdateSyncedMaxHealth(int newMax)
+    {
+        if (!IsServer) return;
+        _syncedMaxHealth.Value = Mathf.Max(1, newMax);
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called on the server only when the local Health takes damage.
-    /// Writes the new value to the NetworkVariable, triggering replication to all clients.
-    /// </summary>
+    // Called on the server only when the local Health takes damage.
+    // Writes the new value to the NetworkVariable, triggering replication to all clients.
     private void OnDamagedServer(int currentHealth, int maxHealth)
     {
         _syncedHealth.Value = currentHealth;
@@ -105,12 +134,27 @@ public class NetworkHealthSync : NetworkBehaviour
         Debug.Log($"[NetworkHealthSync] '{name}' health synced: {currentHealth}/{maxHealth}");
     }
 
-    /// <summary>
-    /// Called on all machines when the NetworkVariable value changes.
-    /// Forwards to the C# event so local listeners (Healthbar, UI) update without polling.
-    /// </summary>
-    private void OnSyncedValueChanged(int oldValue, int newValue)
+    // Called on all machines when the current health NetworkVariable changes.
+    // Forwards to the C# event so local listeners (Healthbar, UI) update without polling.
+    private void OnSyncedHealthChanged(int oldValue, int newValue)
     {
         OnHealthChanged?.Invoke(newValue, MaxHealth);
+    }
+
+    // Called on all machines when the max health NetworkVariable changes.
+    // On clients: updates the local Health component so Healthbar fill ratios stay correct.
+    // On the server: Health.maxHealth was already updated directly (via AdjustMaxHealth),
+    // so we only need to fire the UI event.
+    private void OnSyncedMaxHealthChanged(int oldMax, int newMax)
+    {
+        if (!IsServer && _health != null)
+        {
+            // Sync client Health component — this fires Health.OnDamaged which
+            // keeps any direct Health subscribers (non-player entities) in sync too.
+            _health.ClientSync(newMax, _syncedHealth.Value);
+        }
+
+        // Notify UI (Healthbar) on all machines with the updated max.
+        OnHealthChanged?.Invoke(_syncedHealth.Value, newMax);
     }
 }
