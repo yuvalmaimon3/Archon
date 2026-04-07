@@ -19,8 +19,13 @@ using UnityEngine;
 ///
 /// Setup requirements on the prefab:
 ///   - A Collider set to Is Trigger
-///   - A Rigidbody (forced kinematic in Awake)
+///   - A Rigidbody (non-kinematic, gravity off — moved via linearVelocity)
 ///   - A NetworkObject component (required for multiplayer replication)
+///
+/// NOTE: The Rigidbody must NOT be kinematic. Unity 6 does not fire OnTriggerEnter
+/// between two kinematic Rigidbodies. Keeping the projectile non-kinematic (gravity off,
+/// velocity-driven) ensures trigger events fire against both kinematic enemies (Wraith)
+/// and non-kinematic enemies (Goblin, Slime, etc.).
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
@@ -62,24 +67,24 @@ public class Projectile : NetworkBehaviour
     // Avoids CancelInvoke which would cancel ALL pending invocations on this object.
     private Coroutine _lifetimeCoroutine;
 
+    private Rigidbody _rb;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
-        // Kinematic: we move the projectile manually via Transform.Translate.
-        // OnTriggerEnter still fires correctly with a kinematic Rigidbody.
-        var rb         = GetComponent<Rigidbody>();
-        rb.isKinematic = true;
-        rb.useGravity  = false;
+        _rb = GetComponent<Rigidbody>();
+
+        // Non-kinematic so OnTriggerEnter fires against kinematic enemies (e.g. Wraith).
+        // Unity 6 does not generate trigger events between two kinematic Rigidbodies.
+        // Gravity is off — velocity set at initialization drives the straight-line flight.
+        _rb.isKinematic = false;
+        _rb.useGravity  = false;
+        _rb.freezeRotation = true;
+        _rb.interpolation = RigidbodyInterpolation.Interpolate;
     }
 
-    private void Update()
-    {
-        if (!_isInitialized) return;
-
-        // Straight-line movement in world space — identical on every client.
-        transform.Translate(_direction * _speed * Time.deltaTime, Space.World);
-    }
+    // No Update movement needed — velocity is set once at initialization and physics carries it.
 
     // ── NGO lifecycle ────────────────────────────────────────────────────────
 
@@ -117,6 +122,9 @@ public class Projectile : NetworkBehaviour
         _displayElementType   = elementType;
         _isInitialized        = true;
 
+        // Drive movement via physics velocity — non-kinematic, gravity off.
+        _rb.linearVelocity = _direction * _speed;
+
         Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
                   $"element:{elementType}, lifetime:{lifetime}s");
     }
@@ -140,6 +148,9 @@ public class Projectile : NetworkBehaviour
         _targetTag            = targetTag;
         _displayElementType   = elementApplication.Element;
         _isInitialized        = true;
+
+        // Drive movement via physics velocity — non-kinematic, gravity off.
+        _rb.linearVelocity = _direction * _speed;
 
         // Standalone mode: manage lifetime with a local Destroy.
         Destroy(gameObject, lifetime);
