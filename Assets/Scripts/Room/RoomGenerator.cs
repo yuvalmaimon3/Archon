@@ -40,8 +40,16 @@ public class RoomGenerator : MonoBehaviour
         _navMeshSurface = GetComponent<NavMeshSurface>();
     }
 
+    // Auto-generate on Play so the room is ready immediately for testing.
+    private void Start()
+    {
+        GenerateRoom();
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
+    // Right-click the component in the Inspector → "Generate Room" to test in Edit mode.
+    [ContextMenu("Generate Room")]
     // Destroys any previous room and builds a fresh one.
     public void GenerateRoom()
     {
