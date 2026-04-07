@@ -69,6 +69,20 @@ public class Projectile : NetworkBehaviour
 
     private Rigidbody _rb;
 
+    // ── Split config (Shotgun upgrade) ───────────────────────────────────────
+    // Set server-side by PlayerCombatBrain after spawning. Never set on split
+    // projectiles themselves — prevents infinite recursive splitting.
+
+    // Whether this projectile spawns 3 children when it hits an enemy.
+    private bool _splitOnHit;
+
+    // Angle in degrees between the forward split and each angled split.
+    private float _splitAngle;
+
+    // The prefab and stats to use for the spawned split projectiles.
+    // Copied from the original AttackDefinition so we don't need to pass it each frame.
+    private AttackDefinition _splitAttackDef;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -159,6 +173,19 @@ public class Projectile : NetworkBehaviour
                   $"element:{elementApplication.Element}, lifetime:{lifetime}s");
     }
 
+    // ── Split API ────────────────────────────────────────────────────────────
+
+    // Called server-side by PlayerCombatBrain after spawning this projectile.
+    // Marks the projectile to spawn 3 split children on the next enemy hit.
+    // Split projectiles never get ConfigureSplit called — no recursive splitting.
+    public void ConfigureSplit(float angleDeg, AttackDefinition attackDef)
+    {
+        _splitOnHit    = true;
+        _splitAngle    = angleDeg;
+        _splitAttackDef = attackDef;
+        Debug.Log($"[Projectile] Split configured — angle:{angleDeg}°, def:'{attackDef?.AttackId}'.");
+    }
+
     // ── Collision ────────────────────────────────────────────────────────────
 
     private void OnTriggerEnter(Collider other)
@@ -202,6 +229,11 @@ public class Projectile : NetworkBehaviour
                 Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{_targetTag}') " +
                                  $"but it has no IDamageable component.");
             }
+
+            // Shotgun upgrade: spawn 3 split projectiles on enemy hit (server only).
+            // Split projectiles never split again — ConfigureSplit is intentionally not called on them.
+            if (_splitOnHit && _splitAttackDef != null)
+                SpawnSplitProjectiles();
         }
         else
         {
@@ -213,6 +245,64 @@ public class Projectile : NetworkBehaviour
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    // Spawns 3 split projectiles at this projectile's position:
+    //   - one continuing in the original direction
+    //   - one rotated +_splitAngle degrees around the Y axis
+    //   - one rotated -_splitAngle degrees around the Y axis
+    // Server-only — called from OnTriggerEnter (which is already guarded by !IsServer return).
+    private void SpawnSplitProjectiles()
+    {
+        Vector3[] splitDirs =
+        {
+            _direction,
+            Quaternion.AngleAxis( _splitAngle, Vector3.up) * _direction,
+            Quaternion.AngleAxis(-_splitAngle, Vector3.up) * _direction,
+        };
+
+        // Resolve the source as a NetworkObjectReference for InitializeClientRpc.
+        NetworkObjectReference sourceRef = default;
+        if (_source != null && _source.TryGetComponent<NetworkObject>(out var srcNet))
+            sourceRef = new NetworkObjectReference(srcNet);
+
+        Debug.Log($"[Projectile] Shotgun split — spawning {splitDirs.Length} projectiles at ±{_splitAngle}°.");
+
+        foreach (var dir in splitDirs)
+        {
+            var splitProjectile = Object.Instantiate(
+                _splitAttackDef.ProjectilePrefab,
+                transform.position,
+                Quaternion.LookRotation(dir)
+            );
+
+            if (_isNetworked)
+            {
+                // Networked: spawn through NGO and broadcast trajectory to all clients.
+                splitProjectile.NetworkObject.Spawn();
+                splitProjectile.InitializeClientRpc(
+                    damage:          _damage,
+                    sourceRef:       sourceRef,
+                    direction:       dir,
+                    speed:           _splitAttackDef.ProjectileSpeed,
+                    elementType:     _splitAttackDef.ElementType,
+                    elementStrength: _splitAttackDef.ElementStrength,
+                    targetTag:       _splitAttackDef.ProjectileTargetTag
+                );
+            }
+            else
+            {
+                // Standalone / offline: initialize locally.
+                splitProjectile.Initialize(
+                    damage:             _damage,
+                    source:             _source,
+                    direction:          dir,
+                    speed:              _splitAttackDef.ProjectileSpeed,
+                    elementApplication: _elementApplication,
+                    targetTag:          _splitAttackDef.ProjectileTargetTag
+                );
+            }
+        }
+    }
 
     // Server-side lifetime expiry coroutine — despawns on all clients when time runs out.
     private IEnumerator LifetimeExpiry()

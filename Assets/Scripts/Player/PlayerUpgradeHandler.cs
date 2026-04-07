@@ -27,11 +27,12 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     // ── Component references ─────────────────────────────────────────────────
 
-    private PlayerLevelSystem  _levelSystem;
-    private Health             _health;
-    private NetworkHealthSync  _healthSync;
-    private AttackController[] _attackControllers;
-    private PlayerMovement     _movement;
+    private PlayerLevelSystem         _levelSystem;
+    private Health                    _health;
+    private NetworkHealthSync         _healthSync;
+    private AttackController[]        _attackControllers;
+    private PlayerMovement            _movement;
+    private PlayerProjectileModifiers _projectileModifiers;
 
     // ── Runtime state ────────────────────────────────────────────────────────
 
@@ -46,11 +47,12 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     private void Awake()
     {
-        _levelSystem       = GetComponent<PlayerLevelSystem>();
-        _health            = GetComponent<Health>();
-        _healthSync        = GetComponent<NetworkHealthSync>();
-        _attackControllers = GetComponents<AttackController>();
-        _movement          = GetComponent<PlayerMovement>();
+        _levelSystem          = GetComponent<PlayerLevelSystem>();
+        _health               = GetComponent<Health>();
+        _healthSync           = GetComponent<NetworkHealthSync>();
+        _attackControllers    = GetComponents<AttackController>();
+        _movement             = GetComponent<PlayerMovement>();
+        _projectileModifiers  = GetComponent<PlayerProjectileModifiers>();
 
         if (_levelSystem == null)
             Debug.LogError($"[PlayerUpgradeHandler] No PlayerLevelSystem on '{name}'.", this);
@@ -238,6 +240,19 @@ public class PlayerUpgradeHandler : NetworkBehaviour
                     Debug.Log($"[PlayerUpgradeHandler] Attack speed +{upgrade.value * 100f:F0}% on '{ac.gameObject.name}' " +
                               $"→ cooldown ×{newMult:F3} (effective: {ac.EffectiveCooldown:F2}s)");
                 }
+                break;
+            }
+
+            case UpgradeEffectType.ProjectileSplit:
+            {
+                // Add PlayerProjectileModifiers if not already present, then enable split.
+                // value = the angle in degrees between the forward shot and each angled shot.
+                if (_projectileModifiers == null)
+                    _projectileModifiers = gameObject.AddComponent<PlayerProjectileModifiers>();
+
+                _projectileModifiers.SplitOnHit        = true;
+                _projectileModifiers.SplitAngleDegrees = upgrade.value;
+                Debug.Log($"[PlayerUpgradeHandler] Shotgun split enabled — angle:{upgrade.value}°");
                 break;
             }
 

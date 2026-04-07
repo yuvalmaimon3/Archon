@@ -18,6 +18,7 @@ public enum UpgradeEffectType
     DamagePercent,      // Multiplies the current damage multiplier by (1 + value): e.g. value=0.10 → +10%
     MoveSpeedFlat,      // Adds a flat bonus to the player's move speed
     AttackSpeedPercent, // Reduces attack cooldown by 'value' fraction: value=0.20 → 20% faster attacks
+    ProjectileSplit,    // On enemy hit, splits the projectile into 3: forward, +value°, -value° (value = angle in degrees, e.g. 45)
 }
 
 // Defines a single upgrade option that can appear in the upgrade selection dialog.
@@ -49,7 +50,8 @@ public class UpgradeDefinition : ScriptableObject
              "  HealPercent        → fraction of max HP healed (e.g. 0.5 = 50%)\n" +
              "  DamagePercent      → fraction added to damage multiplier (e.g. 0.10 = +10%)\n" +
              "  MoveSpeedFlat      → flat units/sec added to move speed (e.g. 1.0)\n" +
-             "  AttackSpeedPercent → fraction by which cooldown is reduced (e.g. 0.20 = 20% faster)")]
+             "  AttackSpeedPercent → fraction by which cooldown is reduced (e.g. 0.20 = 20% faster)\n" +
+             "  ProjectileSplit    → angle in degrees between split projectiles (e.g. 45)")]
     [Min(0f)]
     public float value = 1f;
 }

@@ -39,6 +39,10 @@ public class PlayerCombatBrain : NetworkBehaviour
     // Track the previous target to avoid spamming the log every frame.
     private Transform _lastLoggedTarget;
 
+    // Holds active projectile-modifying upgrades (e.g. Shotgun split).
+    // Consulted on the server inside SpawnProjectileServerRpc.
+    private PlayerProjectileModifiers _projectileModifiers;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -49,6 +53,9 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         if (attackController == null)
             Debug.LogError($"[PlayerCombatBrain] {gameObject.name} has no AttackController assigned or found.", this);
+
+        // Optional — only present when a projectile-modifying upgrade has been applied.
+        _projectileModifiers = GetComponent<PlayerProjectileModifiers>();
     }
 
     private void Update()
@@ -174,6 +181,15 @@ public class PlayerCombatBrain : NetworkBehaviour
             elementStrength: def.ElementStrength,
             targetTag:       def.ProjectileTargetTag
         );
+
+        // Apply projectile modifiers from active upgrades (e.g. Shotgun split).
+        // ConfigureSplit is server-only — no RPC needed, the split spawning also runs on the server.
+        // Re-read _projectileModifiers in case it was added after Awake (upgrade applied mid-session).
+        if (_projectileModifiers == null)
+            _projectileModifiers = GetComponent<PlayerProjectileModifiers>();
+
+        if (_projectileModifiers != null && _projectileModifiers.SplitOnHit)
+            projectile.ConfigureSplit(_projectileModifiers.SplitAngleDegrees, def);
 
         Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' (networked).");
     }

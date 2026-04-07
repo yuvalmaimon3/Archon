@@ -9,9 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83d95137bb796684d9c050bc2a0a86cc, type: 3}
-  m_Name: UpgradePool
+  m_Script: {fileID: 11500000, guid: 280e31623dd6cf4478385d27345d0ad4, type: 3}
+  m_Name: Upgrade_Shotgun
   m_EditorClassIdentifier: 
-  upgrades:
-  - {fileID: 11400000, guid: 77afd1c88e076684a8f6b0be6ed02ec3, type: 2}
-  - {fileID: 11400000, guid: a06cb9767c188e447b7831fc4052b9af, type: 2}
+  upgradeName: Shotgun
+  description: When a ball hits an enemy, it creates 3 more balls.
+  icon: {fileID: 0}
+  category: 0
+  effectType: 5
+  value: 45
