@@ -22,6 +22,10 @@ public class RoomGenerator : MonoBehaviour
     // Actual length chosen for this generation (width is always settings.Width).
     private float _roomLength;
 
+    // Read by RoomManager to pass spawn bounds to EnemySpawner after generation.
+    public float RoomWidth  => settings != null ? settings.Width : 20f;
+    public float RoomLength => _roomLength;
+
     // References kept so ClearRoom() can destroy everything cleanly.
     private GameObject _floor;
     private readonly List<GameObject> _walls = new();
@@ -40,17 +44,11 @@ public class RoomGenerator : MonoBehaviour
         _navMeshSurface = GetComponent<NavMeshSurface>();
     }
 
-    // Auto-generate on Play so the room is ready immediately for testing.
-    private void Start()
-    {
-        GenerateRoom();
-    }
-
     // ── Public API ────────────────────────────────────────────────────────────
 
+    // Builds a new room. Called by RoomManager before starting the run.
     // Right-click the component in the Inspector → "Generate Room" to test in Edit mode.
     [ContextMenu("Generate Room")]
-    // Destroys any previous room and builds a fresh one.
     public void GenerateRoom()
     {
         ClearRoom();
