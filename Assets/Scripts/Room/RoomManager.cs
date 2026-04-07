@@ -1,32 +1,33 @@
 using System;
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 // Central orchestrator for a room's run flow.
 //
-// Flow:
-//   StartRoom()
-//     ↓
-//   Round 1 → Round 2 → Round 3 (final, no timer)
-//     ↓ (each round: spawn enemies, run timer if not final, wait for end condition)
-//   OnAllRoundsComplete fires
-//     ↓ (if upgrade pending)
-//   OnUpgradeRequired fires → waits for NotifyUpgradeChosen()
-//     ↓
-//   OnRoomComplete fires → gate opens
+// NETWORK SPLIT:
+//   Server  — drives all round logic (spawn, timer expiry, state transitions, upgrade gating).
+//             EnemySpawner and the authoritative RoundTimer run here only.
+//   Clients — receive ClientRpcs at each transition so they can update UI and react to events.
+//             Each client runs its own local RoundTimer seeded by the Rpc (display only, not authoritative).
+//             Gate opens via event fired from the Rpc — no extra network object needed.
 //
-// Upgrade integration:
-//   Any system (e.g. PlayerLevelSystem) can call SetUpgradeRequired() to signal that
-//   the player leveled up and must choose an upgrade before the gate opens.
-//   The upgrade UI then calls NotifyUpgradeChosen() when the player picks.
+// NetworkVariables (CurrentRound, State) let late-joining clients immediately know where
+// the room is without needing to replay Rpc history. They change at most 3-4 times per room
+// so bandwidth cost is negligible.
+//
+// Flow:
+//   OnNetworkSpawn (server) → GenerateRoom → StartRoom
+//     Round 1 → Round 2 → Round 3 (final, no timer)
+//   OnAllRoundsComplete → upgrade check → OnRoomComplete → gate opens on all clients
 [RequireComponent(typeof(RoundTimer))]
 [RequireComponent(typeof(EnemySpawner))]
-public class RoomManager : MonoBehaviour
+public class RoomManager : NetworkBehaviour
 {
     // ── Inspector ─────────────────────────────────────────────────────────────
 
     [Header("Configuration")]
-    [Tooltip("Defines the 3 rounds for this room (enemy types, counts, timer durations).")]
+    [Tooltip("Defines the 3 rounds for this room. Assign a RoomConfig asset here.")]
     [SerializeField] private RoomConfig _config;
 
     [Header("Room Generation")]
@@ -34,50 +35,61 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private RoomGenerator _roomGenerator;
 
     [Header("Between Rounds")]
-    [Tooltip("Seconds to wait between rounds before spawning the next batch.")]
+    [Tooltip("Seconds to pause between rounds before spawning the next batch.")]
     [SerializeField] [Min(0f)] private float _betweenRoundDelay = 2f;
 
-    // ── Component references (auto-fetched in Awake) ──────────────────────────
+    // ── NetworkVariables ──────────────────────────────────────────────────────
 
-    private EnemySpawner _spawner;
-    private RoundTimer   _timer;
+    // Current round number (1-based). Clients read this for UI display.
+    // Written only by server; readable by all clients.
+    private readonly NetworkVariable<int> _currentRound = new(
+        0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    // ── Events ────────────────────────────────────────────────────────────────
+    // Room state. Clients read this to know when to show upgrade UI, open gate, etc.
+    private readonly NetworkVariable<RoomState> _state = new(
+        RoomState.Idle, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    // ── Component references (server-side only for spawner/timer) ─────────────
+
+    private EnemySpawner _spawner;   // called only on server
+    private RoundTimer   _timer;     // authoritative on server; display-only on clients
+
+    // ── Events (fired locally on every client via ClientRpcs) ─────────────────
 
     // Fired once when the first round is about to start.
     public event Action OnRoomStarted;
 
-    // Fired at the start of each round. (roundIndex: 0-based, totalRounds: e.g. 3)
+    // Fired at the start of each round. (roundIndex: 0-based, totalRounds)
     public event Action<int, int> OnRoundStarted;
 
-    // Fired when a round ends. Carries why it ended (enemies defeated / timer expired).
+    // Fired when a round ends.
     public event Action<int, RoundEndReason> OnRoundEnded;
 
-    // Fired after the last round ends, before the upgrade check.
+    // Fired after the final round ends, before the upgrade check.
     public event Action OnAllRoundsComplete;
 
     // Fired if an upgrade must be chosen before the gate opens.
     // Subscribe to show the upgrade selection UI.
     public event Action OnUpgradeRequired;
 
-    // Fired when the room is fully complete. Subscribe to open the gate.
+    // Fired when the room is fully complete. Gate subscribes here to open.
     public event Action OnRoomComplete;
 
-    // ── Read-only state ───────────────────────────────────────────────────────
+    // ── Public read-only state ────────────────────────────────────────────────
 
-    public RoomState State           { get; private set; } = RoomState.Idle;
-    public int       CurrentRound    { get; private set; } = 0; // 1-based for readability in logs/UI
-    public int       TotalRounds     => _config != null ? _config.RoundCount : 0;
+    public RoomState State        => _state.Value;
+    public int       CurrentRound => _currentRound.Value;
+    public int       TotalRounds  => _config != null ? _config.RoundCount : 0;
 
-    // ── Private state ─────────────────────────────────────────────────────────
+    // ── Private server-side state ─────────────────────────────────────────────
 
-    // Set by SetUpgradeRequired() when the player leveled up mid-room.
+    // Set by SetUpgradeRequired() when the player leveled up during this room.
     private bool _upgradeRequired;
 
-    // Set true once all rounds finish — prevents re-completion.
+    // Prevents re-completion if something triggers FinishAllRounds twice.
     private bool _allRoundsFinished;
 
-    // ── Unity lifecycle ───────────────────────────────────────────────────────
+    // ── Unity / NGO lifecycle ──────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -85,11 +97,18 @@ public class RoomManager : MonoBehaviour
         _timer   = GetComponent<RoundTimer>();
     }
 
-    // Auto-starts the room on Play so the test scene works immediately.
-    // In production, call StartRoom() from a room transition system instead.
-    private void Start()
+    // OnNetworkSpawn is the right entry point for NGO objects.
+    // Only the server drives room generation and the run flow.
+    public override void OnNetworkSpawn()
     {
-        // Generate the room geometry first, then pass bounds to the spawner.
+        if (!IsServer) return;
+
+        if (_config == null)
+        {
+            Debug.LogError("[RoomManager] No RoomConfig assigned — cannot start.");
+            return;
+        }
+
         if (_roomGenerator != null)
         {
             _roomGenerator.GenerateRoom();
@@ -105,46 +124,28 @@ public class RoomManager : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    // Starts the room run — fires OnRoomStarted, then begins Round 1.
-    // Only valid when State == Idle.
-    [ContextMenu("Start Room")]
-    public void StartRoom()
-    {
-        if (State != RoomState.Idle)
-        {
-            Debug.LogWarning($"[RoomManager] StartRoom called in state {State} — ignored.");
-            return;
-        }
-
-        if (_config == null)
-        {
-            Debug.LogError("[RoomManager] No RoomConfig assigned — cannot start.");
-            return;
-        }
-
-        Debug.Log($"[RoomManager] Room starting — {TotalRounds} rounds.");
-        OnRoomStarted?.Invoke();
-        StartCoroutine(RunRoom());
-    }
-
-    // Called by an external system (e.g. PlayerLevelSystem) when the player levels up.
-    // Must be called BEFORE all rounds finish to take effect for this room.
-    // If called after all rounds finish, it is ignored (gate opens on its own).
+    // Called by an external system (e.g. PlayerLevelSystem) on the server when the player levels up.
+    // Must be called before all rounds finish to gate the room completion behind an upgrade choice.
     public void SetUpgradeRequired()
     {
+        if (!IsServer) return;
+
         if (_allRoundsFinished)
         {
             Debug.LogWarning("[RoomManager] SetUpgradeRequired called after rounds finished — too late.");
             return;
         }
+
         _upgradeRequired = true;
         Debug.Log("[RoomManager] Upgrade flagged — gate will wait for upgrade choice.");
     }
 
-    // Called by the upgrade UI once the player has selected an upgrade.
-    // If all rounds are already done and we were waiting, this completes the room.
+    // Called by the upgrade UI (on the server) once the player picks an upgrade.
+    // If all rounds are done and we were waiting, this completes the room.
     public void NotifyUpgradeChosen()
     {
+        if (!IsServer) return;
+
         if (!_upgradeRequired)
         {
             Debug.LogWarning("[RoomManager] NotifyUpgradeChosen called but no upgrade was pending.");
@@ -154,13 +155,22 @@ public class RoomManager : MonoBehaviour
         _upgradeRequired = false;
         Debug.Log("[RoomManager] Upgrade chosen.");
 
-        if (_allRoundsFinished && State == RoomState.WaitingForUpgrade)
+        if (_allRoundsFinished && _state.Value == RoomState.WaitingForUpgrade)
             CompleteRoom();
     }
 
-    // ── Room flow ─────────────────────────────────────────────────────────────
+    // ── Server: room flow ──────────────────────────────────────────────────────
 
-    // Runs all rounds sequentially, then finalises the room.
+    // Starts the room — notifies all clients via Rpc, then begins Round 1 on the server.
+    private void StartRoom()
+    {
+        // IsServer already guaranteed by the only caller (OnNetworkSpawn).
+        Debug.Log($"[RoomManager] Room starting — {TotalRounds} rounds.");
+        NotifyRoomStartedClientRpc();
+        StartCoroutine(RunRoom());
+    }
+
+    // Runs all rounds sequentially on the server.
     private IEnumerator RunRoom()
     {
         for (int i = 0; i < _config.RoundCount; i++)
@@ -169,35 +179,35 @@ public class RoomManager : MonoBehaviour
         FinishAllRounds();
     }
 
-    // Runs one round: spawns enemies, optionally runs a timer, waits for the end condition.
+    // Runs one round: notify clients → spawn enemies → wait for end condition → notify clients.
     private IEnumerator RunRound(int roundIndex)
     {
         var  roundConfig  = _config.Rounds[roundIndex];
         bool isFinalRound = (roundIndex == _config.RoundCount - 1);
+        float timerDuration = isFinalRound ? 0f : roundConfig.TimerDuration;
 
-        State        = RoomState.RoundActive;
-        CurrentRound = roundIndex + 1;
+        _currentRound.Value = roundIndex + 1;
+        _state.Value        = RoomState.RoundActive;
 
-        Debug.Log($"[RoomManager] Round {CurrentRound}/{TotalRounds} — " +
-                  $"final:{isFinalRound}, timer:{(isFinalRound ? "none" : roundConfig.TimerDuration + "s")}");
+        Debug.Log($"[RoomManager] Round {_currentRound.Value}/{TotalRounds} — " +
+                  $"final:{isFinalRound}, timer:{(timerDuration > 0f ? timerDuration + "s" : "none")}");
 
-        OnRoundStarted?.Invoke(roundIndex, TotalRounds);
+        // Tell all clients: new round started + timer duration (so they can run a local display timer).
+        NotifyRoundStartedClientRpc(roundIndex, TotalRounds, timerDuration);
 
-        // Flags set by event callbacks within this round's scope.
         bool allDefeated  = false;
         bool timerExpired = false;
 
         void OnDefeated() => allDefeated = true;
         _spawner.OnAllEnemiesDefeated += OnDefeated;
-
         _spawner.SpawnRound(roundConfig);
 
-        if (!isFinalRound && !roundConfig.IsTimerless)
+        if (!isFinalRound && timerDuration > 0f)
         {
-            // Non-final round: ends when enemies die OR timer runs out.
+            // Non-final round: ends when enemies die OR timer runs out (whichever first).
             void OnTimerEnd() => timerExpired = true;
             _timer.OnTimerExpired += OnTimerEnd;
-            _timer.Begin(roundConfig.TimerDuration);
+            _timer.Begin(timerDuration);
 
             yield return new WaitUntil(() => allDefeated || timerExpired);
 
@@ -206,37 +216,36 @@ public class RoomManager : MonoBehaviour
         }
         else
         {
-            // Final round (or explicitly timer-less): only ends when all enemies die.
+            // Final round (or explicitly timer-less): only ends when all enemies are dead.
             yield return new WaitUntil(() => allDefeated);
         }
 
         _spawner.OnAllEnemiesDefeated -= OnDefeated;
 
-        var reason = allDefeated ? RoundEndReason.AllEnemiesDefeated : RoundEndReason.TimerExpired;
-        State = RoomState.BetweenRounds;
+        var reason   = allDefeated ? RoundEndReason.AllEnemiesDefeated : RoundEndReason.TimerExpired;
+        _state.Value = RoomState.BetweenRounds;
 
-        Debug.Log($"[RoomManager] Round {CurrentRound} ended — {reason}.");
-        OnRoundEnded?.Invoke(roundIndex, reason);
+        Debug.Log($"[RoomManager] Round {_currentRound.Value} ended — {reason}.");
+        NotifyRoundEndedClientRpc(roundIndex, reason);
 
-        // Pause between rounds (skip after the final round).
+        // Brief pause before the next round (skip after the final one).
         if (!isFinalRound && _betweenRoundDelay > 0f)
             yield return new WaitForSeconds(_betweenRoundDelay);
     }
 
-    // Called once all rounds are done.
+    // Called once all rounds finish on the server.
     private void FinishAllRounds()
     {
         _allRoundsFinished = true;
 
         Debug.Log("[RoomManager] All rounds complete.");
-        OnAllRoundsComplete?.Invoke();
+        NotifyAllRoundsCompleteClientRpc();
 
         if (_upgradeRequired)
         {
-            // Block here until the player picks an upgrade — NotifyUpgradeChosen() will finish the room.
-            State = RoomState.WaitingForUpgrade;
+            _state.Value = RoomState.WaitingForUpgrade;
             Debug.Log("[RoomManager] Waiting for upgrade selection.");
-            OnUpgradeRequired?.Invoke();
+            NotifyUpgradeRequiredClientRpc();
         }
         else
         {
@@ -244,11 +253,63 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    // Final step — marks room complete and notifies all listeners (gate, transition system, etc.).
+    // Final step — marks room complete and notifies all clients (gate opens, transition begins).
     private void CompleteRoom()
     {
-        State = RoomState.Complete;
-        Debug.Log("[RoomManager] Room complete — gate opening.");
+        _state.Value = RoomState.Complete;
+        Debug.Log("[RoomManager] Room complete — gate opening on all clients.");
+        NotifyRoomCompleteClientRpc();
+    }
+
+    // ── ClientRpcs — fire events on every client (including host) ─────────────
+
+    // Each Rpc fires the corresponding local event so UI and other systems react uniformly
+    // on every machine without any additional polling.
+
+    [ClientRpc]
+    private void NotifyRoomStartedClientRpc()
+    {
+        OnRoomStarted?.Invoke();
+    }
+
+    // timerDuration > 0 means clients should show a countdown; 0 means final round (no timer UI).
+    [ClientRpc]
+    private void NotifyRoundStartedClientRpc(int roundIndex, int totalRounds, float timerDuration)
+    {
+        // Clients run a local timer purely for display — not authoritative.
+        // The server's timer drives actual round logic.
+        if (!IsServer && timerDuration > 0f)
+            _timer.Begin(timerDuration);
+
+        OnRoundStarted?.Invoke(roundIndex, totalRounds);
+    }
+
+    [ClientRpc]
+    private void NotifyRoundEndedClientRpc(int roundIndex, RoundEndReason reason)
+    {
+        // Stop the display timer on clients if it's still running.
+        if (!IsServer)
+            _timer.Cancel();
+
+        OnRoundEnded?.Invoke(roundIndex, reason);
+    }
+
+    [ClientRpc]
+    private void NotifyAllRoundsCompleteClientRpc()
+    {
+        OnAllRoundsComplete?.Invoke();
+    }
+
+    [ClientRpc]
+    private void NotifyUpgradeRequiredClientRpc()
+    {
+        OnUpgradeRequired?.Invoke();
+    }
+
+    [ClientRpc]
+    private void NotifyRoomCompleteClientRpc()
+    {
+        // Gate and any other completion listeners react here on all clients.
         OnRoomComplete?.Invoke();
     }
 }

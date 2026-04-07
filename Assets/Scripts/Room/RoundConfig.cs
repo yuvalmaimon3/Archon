@@ -6,8 +6,9 @@ using UnityEngine;
 [Serializable]
 public class RoundConfig
 {
-    [Tooltip("Enemies to spawn when this round begins.")]
-    public EnemySpawnEntry[] Enemies = Array.Empty<EnemySpawnEntry>();
+    [Tooltip("Groups of enemies to spawn when this round begins. " +
+             "Each group is one enemy type with a count — a round typically has multiple groups.")]
+    public SpawnGroup[] SpawnGroups = Array.Empty<SpawnGroup>();
 
     [Tooltip("Countdown duration in seconds. " +
              "Set to 0 on the final round — it only ends when all enemies are dead.")]
@@ -18,14 +19,15 @@ public class RoundConfig
     public bool IsTimerless => TimerDuration <= 0f;
 }
 
-// One entry in a round — which enemy prefab to spawn and how many.
+// One spawn group in a round — an enemy prefab to spawn and how many instances of it.
+// A round can mix several groups, e.g. 3 Goblins + 2 Archers + 1 Elite.
 [Serializable]
-public class EnemySpawnEntry
+public class SpawnGroup
 {
     [Tooltip("Enemy prefab to instantiate. Must have Health (and ideally DeathController).")]
     public GameObject EnemyPrefab;
 
-    [Tooltip("Number of this enemy type to spawn in the round.")]
+    [Tooltip("How many of this enemy type to spawn in the round.")]
     [Min(1)]
     public int Count = 1;
 }
