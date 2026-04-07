@@ -5143,6 +5143,7 @@ GameObject:
   - component: {fileID: 8599948738145597962}
   - component: {fileID: 6227511196765772221}
   - component: {fileID: 5362228019763382238}
+  - component: {fileID: 6367450099873196887}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -5507,6 +5508,21 @@ MonoBehaviour:
   _audioSource: {fileID: 0}
   _levelUpSound: {fileID: 0}
   _debugLog: 1
+--- !u!114 &6367450099873196887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876438885368318691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 805597d1e70509641910f8121217bf8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  _upgradePool: {fileID: 11400000, guid: 30ee4af74b50e2b4b87e505520d26fa0, type: 2}
+  _choiceCount: 3
 --- !u!1 &8104633158309937001
 GameObject:
   m_ObjectHideFlags: 0
