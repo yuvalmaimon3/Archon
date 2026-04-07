@@ -8,6 +8,7 @@ using UnityEngine.UI;
 // Attach to a UI Button GameObject that has:
 //   - a TextMeshProUGUI child named "NameText"
 //   - a TextMeshProUGUI child named "DescriptionText"
+//   - an Image child named "IconImage" (optional — hidden when no icon is set)
 //   - a Button component on the root
 public class UpgradeOptionButton : MonoBehaviour
 {
@@ -17,6 +18,9 @@ public class UpgradeOptionButton : MonoBehaviour
 
     [Tooltip("Displays the upgrade description.")]
     [SerializeField] private TextMeshProUGUI _descriptionText;
+
+    [Tooltip("Displays the upgrade icon. Leave empty to skip icon rendering.")]
+    [SerializeField] private Image _iconImage;
 
     [Tooltip("The Button component. Wired automatically if left empty.")]
     [SerializeField] private Button _button;
@@ -41,6 +45,14 @@ public class UpgradeOptionButton : MonoBehaviour
 
         if (_descriptionText != null)
             _descriptionText.text = upgrade != null ? upgrade.description : string.Empty;
+
+        // Show icon if one is assigned; hide the image slot otherwise so layout stays clean
+        if (_iconImage != null)
+        {
+            bool hasIcon = upgrade != null && upgrade.icon != null;
+            _iconImage.sprite  = hasIcon ? upgrade.icon : null;
+            _iconImage.enabled = hasIcon;
+        }
 
         // Clear previous listeners, then register the new one
         _button.onClick.RemoveAllListeners();

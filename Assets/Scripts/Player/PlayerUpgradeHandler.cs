@@ -226,6 +226,21 @@ public class PlayerUpgradeHandler : NetworkBehaviour
                 break;
             }
 
+            case UpgradeEffectType.AttackSpeedPercent:
+            {
+                // Reduce each attack controller's cooldown multiplier by 'value' fraction.
+                // Compounded multiplicatively so multiple upgrades stack properly.
+                // e.g. 20% faster twice: 1.0 × 0.80 × 0.80 = 0.64 (36% total reduction).
+                foreach (var ac in _attackControllers)
+                {
+                    float newMult = ac.CooldownMultiplier * (1f - upgrade.value);
+                    ac.SetCooldownMultiplier(newMult);
+                    Debug.Log($"[PlayerUpgradeHandler] Attack speed +{upgrade.value * 100f:F0}% on '{ac.gameObject.name}' " +
+                              $"→ cooldown ×{newMult:F3} (effective: {ac.EffectiveCooldown:F2}s)");
+                }
+                break;
+            }
+
             default:
                 Debug.LogWarning($"[PlayerUpgradeHandler] Unknown UpgradeEffectType: {upgrade.effectType}");
                 break;

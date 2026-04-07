@@ -60,6 +60,10 @@ public class AttackController : MonoBehaviour
     // on top of whatever PlayerLevelSystem has already applied (e.g. 1.05^level).
     public float DamageMultiplier => _damageMultiplier;
 
+    // The current cooldown multiplier — read by PlayerUpgradeHandler to compound attack-speed upgrades.
+    // Values < 1.0 mean faster attacks (shorter cooldown).
+    public float CooldownMultiplier => _cooldownMultiplier;
+
     // Sets the damage multiplier applied on top of AttackDefinition.Damage.
     // Called by EnemyInitializer when a level is assigned.
     // 1.0 = base damage, 2.0 = double damage.
