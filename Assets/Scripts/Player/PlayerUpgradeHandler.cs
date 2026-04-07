@@ -243,6 +243,17 @@ public class PlayerUpgradeHandler : NetworkBehaviour
                 break;
             }
 
+            case UpgradeEffectType.BlastReaction:
+            {
+                // Add BlastReactionUpgradeEffect if not already present, then set the radius.
+                // value = blast radius in world units (e.g. 2).
+                var blast = gameObject.GetComponent<BlastReactionUpgradeEffect>()
+                            ?? gameObject.AddComponent<BlastReactionUpgradeEffect>();
+                blast.SetRadius(upgrade.value);
+                Debug.Log($"[PlayerUpgradeHandler] Blast Reaction enabled — radius:{upgrade.value}u");
+                break;
+            }
+
             case UpgradeEffectType.ProjectileSplit:
             {
                 // Add PlayerProjectileModifiers if not already present, then enable split.

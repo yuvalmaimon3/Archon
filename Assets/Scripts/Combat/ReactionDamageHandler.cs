@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -21,6 +22,14 @@ public class ReactionDamageHandler : MonoBehaviour
     [Header("Reaction Damage")]
     [Tooltip("Multiplier applied to the triggering attack's base damage. 2 = double damage.")]
     [SerializeField] private float reactionDamageMultiplier = 2f;
+
+    // ── Global reaction event ─────────────────────────────────────────────────
+
+    // Fired server-side after this entity takes reaction damage.
+    // Carries the world-space position of the reaction and the final damage value.
+    // Subscribers (e.g. BlastReactionUpgradeEffect) can use this for AoE chain effects
+    // without coupling to individual enemy instances.
+    public static event Action<Vector3, int> OnAnyReactionDamage;
 
     // ── Private references ───────────────────────────────────────────────────
 
@@ -89,5 +98,10 @@ public class ReactionDamageHandler : MonoBehaviour
         );
 
         _health.TakeDamage(reactionDamageInfo);
+
+        // Broadcast to any upgrade effects that want to chain off this reaction
+        // (e.g. BlastReactionUpgradeEffect). Position captured before damage in case
+        // the entity is destroyed by the hit.
+        OnAnyReactionDamage?.Invoke(transform.position, reactionDamage);
     }
 }
