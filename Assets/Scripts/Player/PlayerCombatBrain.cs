@@ -210,6 +210,9 @@ public class PlayerCombatBrain : NetworkBehaviour
         if (_projectileModifiers != null && _projectileModifiers.SplitOnHit)
             projectile.ConfigureSplit(_projectileModifiers.SplitAngleDegrees, def);
 
+        if (_projectileModifiers != null && _projectileModifiers.LifeSteal)
+            projectile.ConfigureLifeSteal(_projectileModifiers.LifeStealFraction);
+
         Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' (networked).");
     }
 

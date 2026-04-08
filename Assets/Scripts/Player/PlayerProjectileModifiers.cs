@@ -18,4 +18,14 @@ public class PlayerProjectileModifiers : MonoBehaviour
     // Angle in degrees between the forward split and each angled split.
     [Tooltip("Degrees from the original direction for the two angled split projectiles.")]
     public float SplitAngleDegrees = 45f;
+
+    // ── Life Steal (Life Steal upgrade) ──────────────────────────────────────
+
+    // When true, each projectile that hits an enemy heals the source player
+    // by LifeStealFraction of their max HP (server-side only).
+    [Tooltip("Enabled by the Life Steal upgrade.")]
+    public bool  LifeSteal = false;
+
+    [Tooltip("Fraction of max HP healed per hit (e.g. 0.01 = 1%).")]
+    public float LifeStealFraction = 0.01f;
 }

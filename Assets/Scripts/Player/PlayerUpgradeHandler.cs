@@ -274,6 +274,21 @@ public class PlayerUpgradeHandler : NetworkBehaviour
                 break;
             }
 
+            case UpgradeEffectType.LifeSteal:
+            {
+                // value = heal fraction per hit (e.g. 0.01 = 1% of max HP).
+                // Heal is applied server-side in Projectile.OnTriggerEnter for each enemy hit.
+                // In co-op each player's projectiles only reference their own source, so
+                // lifesteal always heals the correct player.
+                if (_projectileModifiers == null)
+                    _projectileModifiers = gameObject.AddComponent<PlayerProjectileModifiers>();
+
+                _projectileModifiers.LifeSteal         = true;
+                _projectileModifiers.LifeStealFraction = upgrade.value;
+                Debug.Log($"[PlayerUpgradeHandler] Life steal enabled — {upgrade.value * 100f:F0}% per hit");
+                break;
+            }
+
             default:
                 Debug.LogWarning($"[PlayerUpgradeHandler] Unknown UpgradeEffectType: {upgrade.effectType}");
                 break;

@@ -74,15 +74,16 @@ public class Projectile : NetworkBehaviour
     // Set server-side by PlayerCombatBrain after spawning. Never set on split
     // projectiles themselves — prevents infinite recursive splitting.
 
-    // Whether this projectile spawns 3 children when it hits an enemy.
-    private bool _splitOnHit;
-
-    // Angle in degrees between the forward split and each angled split.
-    private float _splitAngle;
-
-    // The prefab and stats to use for the spawned split projectiles.
-    // Copied from the original AttackDefinition so we don't need to pass it each frame.
+    private bool             _splitOnHit;
+    private float            _splitAngle;
     private AttackDefinition _splitAttackDef;
+
+    // ── Life steal (Life Steal upgrade) ──────────────────────────────────────
+    // Server-side only. When true, hitting an enemy heals the source player
+    // by _lifeStealFraction of their max HP.
+
+    private bool  _hasLifeSteal;
+    private float _lifeStealFraction;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -179,6 +180,12 @@ public class Projectile : NetworkBehaviour
 
     // ── Split API ────────────────────────────────────────────────────────────
 
+    public void ConfigureLifeSteal(float fraction)
+    {
+        _hasLifeSteal      = true;
+        _lifeStealFraction = fraction;
+    }
+
     // Called server-side by PlayerCombatBrain after spawning this projectile.
     // Marks the projectile to spawn 3 split children on the next enemy hit.
     // Split projectiles never get ConfigureSplit called — no recursive splitting.
@@ -227,6 +234,18 @@ public class Projectile : NetworkBehaviour
                 damageable.TakeDamage(damageInfo);
                 Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
                           $"(element:{_elementApplication.Element}, crit:{_isCritical}).");
+
+                // Life steal — heal the source player on the server (no RPC needed, Health is server-authoritative).
+                if (_hasLifeSteal && _source != null)
+                {
+                    var sourceHealth = _source.GetComponent<Health>();
+                    if (sourceHealth != null)
+                    {
+                        int healAmount = Mathf.Max(1, Mathf.RoundToInt(sourceHealth.MaxHealth * _lifeStealFraction));
+                        sourceHealth.Heal(healAmount);
+                        Debug.Log($"[Projectile] Life steal — healed '{_source.name}' for {healAmount} HP.");
+                    }
+                }
             }
             else
             {
