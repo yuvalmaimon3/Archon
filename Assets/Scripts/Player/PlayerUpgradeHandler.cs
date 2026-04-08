@@ -93,12 +93,19 @@ public class PlayerUpgradeHandler : NetworkBehaviour
             return;
         }
 
-        // Pick a random subset of upgrades to present
+        // Test UI (all upgrades) takes priority over the normal 3-choice UI when present
+        var testUI = FindFirstObjectByType<UpgradeAllSelectionUI>(FindObjectsInactive.Include);
+        if (testUI != null)
+        {
+            _pendingChoices = _upgradePool.upgrades;
+            testUI.Show(_pendingChoices, OnUpgradeChosen);
+            return;
+        }
+
+        // Normal flow: pick a random subset of upgrades to present
         _pendingChoices = _upgradePool.GetRandomSelection(_choiceCount);
 
-        // Find the upgrade dialog in the scene and show it
         var ui = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
-
         if (ui != null)
         {
             ui.Show(_pendingChoices, OnUpgradeChosen);
