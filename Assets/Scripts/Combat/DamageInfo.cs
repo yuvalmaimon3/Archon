@@ -31,15 +31,23 @@ public readonly struct DamageInfo
     public readonly ElementApplication ElementApplication;
 
     /// <summary>
+    /// True if this hit was a critical strike.
+    /// The crit multiplier is already baked into Amount — this flag is for logging and VFX.
+    /// </summary>
+    public readonly bool IsCritical;
+
+    /// <summary>
     /// ElementApplication defaults to None — non-elemental hits do not need to supply it.
+    /// isCritical defaults to false — most internal hits (reactions, explosions) are not crits themselves.
     /// </summary>
     public DamageInfo(int amount, GameObject source, Vector3 hitPoint, Vector3 hitDirection,
-                      ElementApplication elementApplication = default)
+                      ElementApplication elementApplication = default, bool isCritical = false)
     {
         Amount             = amount;
         Source             = source;
         HitPoint           = hitPoint;
         HitDirection       = hitDirection;
         ElementApplication = elementApplication;
+        IsCritical         = isCritical;
     }
 }

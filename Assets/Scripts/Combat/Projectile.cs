@@ -53,6 +53,7 @@ public class Projectile : NetworkBehaviour
     private Vector3            _direction;
     private float              _speed;
     private ElementApplication _elementApplication;
+    private bool               _isCritical;
 
     private bool _isInitialized;
 
@@ -124,7 +125,7 @@ public class Projectile : NetworkBehaviour
     public void InitializeClientRpc(int damage, NetworkObjectReference sourceRef,
                                      Vector3 direction, float speed,
                                      ElementType elementType, float elementStrength,
-                                     string targetTag)
+                                     string targetTag, bool isCritical = false)
     {
         _isNetworked          = true;
         _source               = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
@@ -133,6 +134,7 @@ public class Projectile : NetworkBehaviour
         _speed                = speed;
         _elementApplication   = new ElementApplication(elementType, elementStrength, _source);
         _targetTag            = targetTag;
+        _isCritical           = isCritical;
         _displayElementType   = elementType;
         _isInitialized        = true;
 
@@ -140,7 +142,7 @@ public class Projectile : NetworkBehaviour
         _rb.linearVelocity = _direction * _speed;
 
         Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementType}, lifetime:{lifetime}s");
+                  $"element:{elementType}, lifetime:{lifetime}s, crit:{isCritical}");
     }
 
     // ── Standalone initialization ─────────────────────────────────────────────
@@ -151,7 +153,8 @@ public class Projectile : NetworkBehaviour
     /// Manages lifetime locally via Destroy().
     /// </summary>
     public void Initialize(int damage, GameObject source, Vector3 direction, float speed,
-                           ElementApplication elementApplication, string targetTag)
+                           ElementApplication elementApplication, string targetTag,
+                           bool isCritical = false)
     {
         _isNetworked          = false;
         _damage               = damage;
@@ -160,6 +163,7 @@ public class Projectile : NetworkBehaviour
         _speed                = speed;
         _elementApplication   = elementApplication;
         _targetTag            = targetTag;
+        _isCritical           = isCritical;
         _displayElementType   = elementApplication.Element;
         _isInitialized        = true;
 
@@ -170,7 +174,7 @@ public class Projectile : NetworkBehaviour
         Destroy(gameObject, lifetime);
 
         Debug.Log($"[Projectile] Initialized (standalone) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementApplication.Element}, lifetime:{lifetime}s");
+                  $"element:{elementApplication.Element}, lifetime:{lifetime}s, crit:{isCritical}");
     }
 
     // ── Split API ────────────────────────────────────────────────────────────
@@ -217,11 +221,12 @@ public class Projectile : NetworkBehaviour
                     source:             _source,
                     hitPoint:           hitPoint,
                     hitDirection:       _direction,
-                    elementApplication: _elementApplication
+                    elementApplication: _elementApplication,
+                    isCritical:         _isCritical
                 );
                 damageable.TakeDamage(damageInfo);
                 Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
-                          $"(element:{_elementApplication.Element}).");
+                          $"(element:{_elementApplication.Element}, crit:{_isCritical}).");
             }
             else
             {
@@ -286,7 +291,8 @@ public class Projectile : NetworkBehaviour
                     speed:           _splitAttackDef.ProjectileSpeed,
                     elementType:     _splitAttackDef.ElementType,
                     elementStrength: _splitAttackDef.ElementStrength,
-                    targetTag:       _splitAttackDef.ProjectileTargetTag
+                    targetTag:       _splitAttackDef.ProjectileTargetTag,
+                    isCritical:      _isCritical   // inherit crit from parent
                 );
             }
             else
@@ -298,7 +304,8 @@ public class Projectile : NetworkBehaviour
                     direction:          dir,
                     speed:              _splitAttackDef.ProjectileSpeed,
                     elementApplication: _elementApplication,
-                    targetTag:          _splitAttackDef.ProjectileTargetTag
+                    targetTag:          _splitAttackDef.ProjectileTargetTag,
+                    isCritical:         _isCritical   // inherit crit from parent
                 );
             }
         }
