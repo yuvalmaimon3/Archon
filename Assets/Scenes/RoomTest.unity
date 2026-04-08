@@ -1880,6 +1880,7 @@ GameObject:
   - component: {fileID: 1244922035}
   - component: {fileID: 1244922040}
   - component: {fileID: 1244922039}
+  - component: {fileID: 1244922041}
   - component: {fileID: 1244922038}
   m_Layer: 0
   m_Name: RoomGenerator
@@ -1991,6 +1992,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f5aaaec71cd2d446957ea66db1d9e05, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1244922041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1244922034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalObjectIdHash: 978208308
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!1 &1289382953
 GameObject:
   m_ObjectHideFlags: 0
@@ -3175,6 +3201,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1717613002}
   m_CullTransparentMesh: 1
+--- !u!1 &1873867228
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1873867230}
+  - component: {fileID: 1873867229}
+  m_Layer: 0
+  m_Name: UpgradeTestSetup
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1873867229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1873867228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5707077707e3e2244ac34ae56a808542, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skeletonPrefab: {fileID: 7700307765241273901, guid: fbe4114656f84bb4783889558c61aa2d, type: 3}
+  _enemyHp: 500
+  _playerHp: 10000
+  _expGrantDelay: 0.2
+  _expAmount: 25
+--- !u!4 &1873867230
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1873867228}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1898082982
 GameObject:
   m_ObjectHideFlags: 0
@@ -3461,3 +3536,4 @@ SceneRoots:
   - {fileID: 281746641}
   - {fileID: 657630020}
   - {fileID: 553295528}
+  - {fileID: 1873867230}
