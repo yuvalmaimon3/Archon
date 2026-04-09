@@ -17,4 +17,5 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 0
   effectType: 5
+  stackable: 0
   value: 45
