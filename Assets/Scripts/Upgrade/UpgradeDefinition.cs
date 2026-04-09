@@ -52,6 +52,12 @@ public class UpgradeDefinition : ScriptableObject
              "(e.g. BlastReaction spawns a ReactionExplosion). Leave empty for stat-only upgrades.")]
     public GameObject effectPrefab;
 
+    [Header("Stacking")]
+    [Tooltip("If false, this upgrade is removed from the pool after being chosen once. " +
+             "Stat upgrades (damage, HP, speed) are usually stackable; " +
+             "behaviour upgrades (Shotgun, BlastReaction) are usually not.")]
+    public bool stackable = true;
+
     [Tooltip("Magnitude of the effect. Meaning depends on effectType:\n" +
              "  MaxHpFlat          → flat HP added (e.g. 20)\n" +
              "  HealPercent        → fraction of max HP healed (e.g. 0.5 = 50%)\n" +

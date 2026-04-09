@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -36,12 +37,20 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     // ── Runtime state ────────────────────────────────────────────────────────
 
+    // Upgrades this player has already chosen — used to filter non-stackable upgrades from the pool
+    private readonly HashSet<UpgradeDefinition> _acquiredUpgrades = new();
+
     // The random selection currently presented to the owner — used to map the
     // button index back to the pool index when the ServerRpc is sent.
     private UpgradeDefinition[] _pendingChoices;
 
     // Cached on the server so we don't call FindFirstObjectByType every upgrade.
     private RoomManager _roomManager;
+
+    // Cached UI references (found once, reused on subsequent level-ups)
+    private UpgradeSelectionUI    _cachedSelectionUI;
+    private UpgradeAllSelectionUI _cachedTestUI;
+    private bool _uiCached;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -60,11 +69,9 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // Subscribe to level-up on all clients — the handler checks IsOwner internally
         if (_levelSystem != null)
             _levelSystem.OnLevelUp += HandleLevelUp;
 
-        // Cache RoomManager reference on the server (only the server calls NotifyUpgradeChosen)
         if (IsServer)
             _roomManager = FindFirstObjectByType<RoomManager>();
     }
@@ -85,7 +92,6 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
         Debug.Log($"[PlayerUpgradeHandler] '{name}' reached level {newLevel} — showing upgrade dialog.");
 
-        // No pool or no upgrades → skip selection, still notify server so the gate can open
         if (_upgradePool == null || _upgradePool.upgrades.Length == 0)
         {
             Debug.LogWarning("[PlayerUpgradeHandler] No UpgradePool assigned — skipping upgrade selection.");
@@ -93,22 +99,29 @@ public class PlayerUpgradeHandler : NetworkBehaviour
             return;
         }
 
-        // Test UI (all upgrades) takes priority over the normal 3-choice UI when present
-        var testUI = FindFirstObjectByType<UpgradeAllSelectionUI>(FindObjectsInactive.Include);
-        if (testUI != null)
+        CacheUI();
+
+        // Test UI (all upgrades) takes priority over the normal 3-choice UI
+        if (_cachedTestUI != null)
         {
             _pendingChoices = _upgradePool.upgrades;
-            testUI.Show(_pendingChoices, OnUpgradeChosen);
+            _cachedTestUI.Show(_pendingChoices, OnUpgradeChosen);
             return;
         }
 
-        // Normal flow: pick a random subset of upgrades to present
-        _pendingChoices = _upgradePool.GetRandomSelection(_choiceCount);
+        // Normal flow: pick a random subset, filtering out non-stackable upgrades already acquired
+        _pendingChoices = _upgradePool.GetRandomSelection(_choiceCount, _acquiredUpgrades);
 
-        var ui = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
-        if (ui != null)
+        if (_pendingChoices.Length == 0)
         {
-            ui.Show(_pendingChoices, OnUpgradeChosen);
+            Debug.Log("[PlayerUpgradeHandler] All upgrades acquired — skipping selection.");
+            SkipUpgradeServerRpc();
+            return;
+        }
+
+        if (_cachedSelectionUI != null)
+        {
+            _cachedSelectionUI.Show(_pendingChoices, OnUpgradeChosen);
         }
         else
         {
@@ -129,7 +142,8 @@ public class PlayerUpgradeHandler : NetworkBehaviour
             return;
         }
 
-        int poolIndex = _upgradePool.IndexOf(_pendingChoices[choiceIndex]);
+        var chosen = _pendingChoices[choiceIndex];
+        int poolIndex = _upgradePool.IndexOf(chosen);
 
         if (poolIndex < 0)
         {
@@ -138,7 +152,21 @@ public class PlayerUpgradeHandler : NetworkBehaviour
             return;
         }
 
+        // Track locally so next level-up filters non-stackable upgrades
+        _acquiredUpgrades.Add(chosen);
+
         ApplyUpgradeServerRpc(poolIndex);
+    }
+
+    // ── UI cache ──────────────────────────────────────────────────────────────
+
+    private void CacheUI()
+    {
+        if (_uiCached) return;
+
+        _cachedTestUI      = FindFirstObjectByType<UpgradeAllSelectionUI>(FindObjectsInactive.Include);
+        _cachedSelectionUI = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
+        _uiCached = true;
     }
 
     // ── ServerRpcs ────────────────────────────────────────────────────────────
@@ -161,14 +189,10 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
         ApplyEffect(upgrade);
 
-        // Let all clients log / show a short feedback
         NotifyUpgradeChosenClientRpc(upgrade.upgradeName);
-
         NotifyRoomUpgradeDone();
     }
 
-    // Called when the player skips (no pool configured, or UI missing).
-    // Still notifies the room manager so the gate isn't stuck waiting.
     [ServerRpc]
     private void SkipUpgradeServerRpc()
     {
@@ -178,132 +202,34 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     // ── ClientRpcs ────────────────────────────────────────────────────────────
 
-    // Logs the chosen upgrade on all clients (hook here for VFX / floating text later).
     [ClientRpc]
     private void NotifyUpgradeChosenClientRpc(string upgradeName)
     {
         Debug.Log($"[PlayerUpgradeHandler] '{name}' chose: {upgradeName}");
-        // TODO: play a short VFX or floating text "+{upgradeName}" above the player
     }
 
     // ── Upgrade application (server only) ────────────────────────────────────
 
-    // Applies the effect of the chosen upgrade directly to the player's components.
-    // Only runs on the server — all networked state is updated through existing sync paths.
+    // Delegates to UpgradeEffectRegistry — each effect type has its own handler class.
     private void ApplyEffect(UpgradeDefinition upgrade)
     {
-        switch (upgrade.effectType)
+        var ctx = new UpgradeContext
         {
-            case UpgradeEffectType.MaxHpFlat:
-            {
-                // Increase max HP and sync the new cap to all clients
-                int newMax = _health.MaxHealth + Mathf.Max(1, (int)upgrade.value);
-                _health.AdjustMaxHealth(newMax);
-                _healthSync?.UpdateSyncedMaxHealth(newMax);
-                Debug.Log($"[PlayerUpgradeHandler] MaxHP +{(int)upgrade.value} → {newMax}");
-                break;
-            }
+            GameObject         = gameObject,
+            Health             = _health,
+            HealthSync         = _healthSync,
+            AttackControllers  = _attackControllers,
+            Movement           = _movement,
+            ProjectileModifiers = _projectileModifiers,
+        };
 
-            case UpgradeEffectType.HealPercent:
-            {
-                // Restore a fraction of max HP (heal fires Health.OnDamaged which NetworkHealthSync catches)
-                int healAmount = Mathf.RoundToInt(_health.MaxHealth * upgrade.value);
-                _health.Heal(healAmount);
-                Debug.Log($"[PlayerUpgradeHandler] Healed {healAmount} HP ({upgrade.value * 100f:F0}% of max)");
-                break;
-            }
+        UpgradeEffectRegistry.TryApply(upgrade, ctx);
 
-            case UpgradeEffectType.DamagePercent:
-            {
-                // Compound the existing damage multiplier (works alongside PlayerLevelSystem's scaling)
-                foreach (var ac in _attackControllers)
-                {
-                    float newMult = ac.DamageMultiplier * (1f + upgrade.value);
-                    ac.SetDamageMultiplier(newMult);
-                    Debug.Log($"[PlayerUpgradeHandler] Damage ×{newMult:F3} on '{ac.gameObject.name}'");
-                }
-                break;
-            }
-
-            case UpgradeEffectType.MoveSpeedFlat:
-            {
-                if (_movement != null)
-                {
-                    _movement.AddSpeedBonus(upgrade.value);
-                    Debug.Log($"[PlayerUpgradeHandler] Move speed +{upgrade.value}");
-                }
-                break;
-            }
-
-            case UpgradeEffectType.AttackSpeedPercent:
-            {
-                // Reduce each attack controller's cooldown multiplier by 'value' fraction.
-                // Compounded multiplicatively so multiple upgrades stack properly.
-                // e.g. 20% faster twice: 1.0 × 0.80 × 0.80 = 0.64 (36% total reduction).
-                foreach (var ac in _attackControllers)
-                {
-                    float newMult = ac.CooldownMultiplier * (1f - upgrade.value);
-                    ac.SetCooldownMultiplier(newMult);
-                    Debug.Log($"[PlayerUpgradeHandler] Attack speed +{upgrade.value * 100f:F0}% on '{ac.gameObject.name}' " +
-                              $"→ cooldown ×{newMult:F3} (effective: {ac.EffectiveCooldown:F2}s)");
-                }
-                break;
-            }
-
-            case UpgradeEffectType.BlastReaction:
-            {
-                // Add BlastReactionUpgradeEffect if not already present, then configure it.
-                // value = blast radius in world units (e.g. 2).
-                // effectPrefab = ReactionExplosion prefab assigned in the UpgradeDefinition asset.
-                if (upgrade.effectPrefab == null || !upgrade.effectPrefab.TryGetComponent<ReactionExplosion>(out var explosionPrefab))
-                {
-                    Debug.LogError("[PlayerUpgradeHandler] BlastReaction upgrade has no ReactionExplosion prefab assigned.");
-                    break;
-                }
-
-                var blast = gameObject.GetComponent<BlastReactionUpgradeEffect>()
-                            ?? gameObject.AddComponent<BlastReactionUpgradeEffect>();
-                blast.SetConfig(explosionPrefab, upgrade.value);
-                Debug.Log($"[PlayerUpgradeHandler] Blast Reaction enabled — radius:{upgrade.value}u");
-                break;
-            }
-
-            case UpgradeEffectType.ProjectileSplit:
-            {
-                // Add PlayerProjectileModifiers if not already present, then enable split.
-                // value = the angle in degrees between the forward shot and each angled shot.
-                if (_projectileModifiers == null)
-                    _projectileModifiers = gameObject.AddComponent<PlayerProjectileModifiers>();
-
-                _projectileModifiers.SplitOnHit        = true;
-                _projectileModifiers.SplitAngleDegrees = upgrade.value;
-                Debug.Log($"[PlayerUpgradeHandler] Shotgun split enabled — angle:{upgrade.value}°");
-                break;
-            }
-
-            case UpgradeEffectType.LifeSteal:
-            {
-                // value = heal fraction per hit (e.g. 0.01 = 1% of max HP).
-                // Heal is applied server-side in Projectile.OnTriggerEnter for each enemy hit.
-                // In co-op each player's projectiles only reference their own source, so
-                // lifesteal always heals the correct player.
-                if (_projectileModifiers == null)
-                    _projectileModifiers = gameObject.AddComponent<PlayerProjectileModifiers>();
-
-                _projectileModifiers.LifeSteal         = true;
-                _projectileModifiers.LifeStealFraction = upgrade.value;
-                Debug.Log($"[PlayerUpgradeHandler] Life steal enabled — {upgrade.value * 100f:F0}% per hit");
-                break;
-            }
-
-            default:
-                Debug.LogWarning($"[PlayerUpgradeHandler] Unknown UpgradeEffectType: {upgrade.effectType}");
-                break;
-        }
+        // Handlers may AddComponent for ProjectileModifiers — sync the cached reference
+        _projectileModifiers = ctx.ProjectileModifiers;
     }
 
     // Tells the room manager that this player's upgrade selection is done.
-    // Server only — RoomManager.NotifyUpgradeChosen() decrements the pending counter.
     private void NotifyRoomUpgradeDone()
     {
         if (_roomManager != null)

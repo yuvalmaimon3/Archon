@@ -13,18 +13,32 @@ public class UpgradePool : ScriptableObject
     public UpgradeDefinition[] upgrades = System.Array.Empty<UpgradeDefinition>();
 
     // Returns 'count' distinct upgrades chosen at random from the pool.
-    // If the pool has fewer entries than 'count', all entries are returned.
-    // Caller owns the returned array — safe to store or mutate.
-    public UpgradeDefinition[] GetRandomSelection(int count)
+    // Non-stackable upgrades already in 'acquired' are excluded from the selection.
+    // If the pool has fewer eligible entries than 'count', all eligible entries are returned.
+    public UpgradeDefinition[] GetRandomSelection(int count, HashSet<UpgradeDefinition> acquired = null)
     {
         if (upgrades == null || upgrades.Length == 0)
             return System.Array.Empty<UpgradeDefinition>();
 
-        count = Mathf.Min(count, upgrades.Length);
+        // Build a filtered list: exclude non-stackable upgrades the player already owns
+        var available = new List<UpgradeDefinition>();
+        for (int i = 0; i < upgrades.Length; i++)
+        {
+            var u = upgrades[i];
+            if (u == null) continue;
 
-        // Shuffle a working copy so we never modify the asset's array
-        var available = new List<UpgradeDefinition>(upgrades);
-        var selected  = new UpgradeDefinition[count];
+            bool alreadyOwned = acquired != null && acquired.Contains(u);
+            if (!u.stackable && alreadyOwned)
+                continue;
+
+            available.Add(u);
+        }
+
+        if (available.Count == 0)
+            return System.Array.Empty<UpgradeDefinition>();
+
+        count = Mathf.Min(count, available.Count);
+        var selected = new UpgradeDefinition[count];
 
         for (int i = 0; i < count; i++)
         {
