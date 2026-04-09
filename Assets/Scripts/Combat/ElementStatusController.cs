@@ -78,8 +78,9 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         {
             LastReaction = result.ReactionType;
 
-            // Attach the triggering attack's damage so reaction handlers can scale off it
+            // Attach the triggering attack's damage and source player
             result = result.WithBaseDamage(baseDamage);
+            result = result.WithSource(application.Source);
 
             Debug.Log($"[ElementStatusController] {gameObject.name} — " +
                       $"reaction: {result.ReactionType} " +

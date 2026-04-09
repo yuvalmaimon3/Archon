@@ -1,7 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 
-// Listens for reactions and spawns a ReactionExplosion prefab at the reaction position.
+// Listens for reactions caused by THIS player and spawns a ReactionExplosion at the reaction position.
 // The prefab owns all explosion behaviour: damage, knockback, VFX, and lifetime.
 //
 // Added to the player GameObject server-side when the Blast Reaction upgrade is chosen.
@@ -12,7 +12,6 @@ public class BlastReactionUpgradeEffect : MonoBehaviour
     // ── Config (set via SetConfig before use) ─────────────────────────────────
 
     // Prefab that contains ReactionExplosion + NetworkObject + particle systems.
-    // Assigned from the UpgradeDefinition.effectPrefab field via SetConfig().
     private ReactionExplosion _explosionPrefab;
 
     // Radius passed to ReactionExplosion.InitializeServer each spawn.
@@ -42,10 +41,12 @@ public class BlastReactionUpgradeEffect : MonoBehaviour
     // ── Blast spawn ───────────────────────────────────────────────────────────
 
     // Fires server-side when any enemy triggers a reaction.
-    // Instantiates and spawns the explosion prefab — clients receive it via NGO
-    // and play the VFX. Damage is applied inside ReactionExplosion.OnNetworkSpawn.
-    private void HandleBlast(Vector3 reactionPosition, int reactionDamage)
+    // Only spawns an explosion if THIS player caused the reaction.
+    private void HandleBlast(Vector3 reactionPosition, int reactionDamage, GameObject source)
     {
+        // Only trigger for reactions caused by this player's attacks
+        if (source != gameObject) return;
+
         if (_explosionPrefab == null)
         {
             Debug.LogWarning("[BlastReactionUpgradeEffect] No explosion prefab assigned — blast skipped.");

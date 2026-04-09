@@ -26,10 +26,9 @@ public class ReactionDamageHandler : MonoBehaviour
     // ── Global reaction event ─────────────────────────────────────────────────
 
     // Fired server-side after this entity takes reaction damage.
-    // Carries the world-space position of the reaction and the final damage value.
-    // Subscribers (e.g. BlastReactionUpgradeEffect) can use this for AoE chain effects
-    // without coupling to individual enemy instances.
-    public static event Action<Vector3, int> OnAnyReactionDamage;
+    // Args: reaction position, final damage, source player who caused the reaction.
+    // Source is null for non-player reactions (traps, environment).
+    public static event Action<Vector3, int, GameObject> OnAnyReactionDamage;
 
     // ── Private references ───────────────────────────────────────────────────
 
@@ -99,9 +98,8 @@ public class ReactionDamageHandler : MonoBehaviour
 
         _health.TakeDamage(reactionDamageInfo);
 
-        // Broadcast to any upgrade effects that want to chain off this reaction
-        // (e.g. BlastReactionUpgradeEffect). Position captured before damage in case
-        // the entity is destroyed by the hit.
-        OnAnyReactionDamage?.Invoke(transform.position, reactionDamage);
+        // Broadcast to per-player upgrade effects (e.g. BlastReactionUpgradeEffect).
+        // Source is the player whose attack triggered the reaction — null for non-player sources.
+        OnAnyReactionDamage?.Invoke(transform.position, reactionDamage, result.Source);
     }
 }
