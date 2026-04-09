@@ -7,15 +7,14 @@ using UnityEngine;
 // While the standard window shows a random subset of 3 upgrades,
 // this window shows EVERY upgrade for testing and debugging.
 //
-// The upgrades array is passed by PlayerUpgradeHandler from its own UpgradePool —
-// no scene-level pool wiring needed. Any upgrade added to the pool appears automatically.
+// Two ways to populate:
+//   1. PlayerUpgradeHandler calls Show(upgrades, callback) during level-up.
+//   2. Manually enabling the canvas in play mode — OnEnable auto-finds the
+//      UpgradePool from PlayerUpgradeHandler and populates the buttons.
+//
+// Any upgrade added to the pool appears automatically.
 //
 // Network: MonoBehaviour — local client only.
-//
-// Setup:
-//   1. Add to a Canvas (Screen Space – Overlay).
-//   2. Assign _panel, _contentParent, and _buttonTemplate.
-//   3. Set the Canvas inactive by default — Show() activates it.
 public class FullUpgradeWindow : MonoBehaviour
 {
     [Header("Panel")]
@@ -33,11 +32,23 @@ public class FullUpgradeWindow : MonoBehaviour
 
     private Action<int>                        _onChosen;
     private readonly List<UpgradeOptionButton> _spawnedButtons = new();
+    private bool _templateHidden;
 
-    private void Start()
+    // ── Unity lifecycle ──────────────────────────────────────────────────────
+
+    private void OnEnable()
     {
-        if (_buttonTemplate != null)
-            _buttonTemplate.gameObject.SetActive(false);
+        HideTemplate();
+
+        // Auto-populate when manually enabled and no buttons exist yet
+        if (_spawnedButtons.Count > 0) return;
+
+        var upgrades = FindUpgradesFromPlayer();
+        if (upgrades != null && upgrades.Length > 0)
+        {
+            PopulateButtons(upgrades);
+            Debug.Log($"[FullUpgradeWindow] Auto-populated {upgrades.Length} upgrade(s) on enable.");
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -55,6 +66,38 @@ public class FullUpgradeWindow : MonoBehaviour
 
         _onChosen = onChosen;
 
+        HideTemplate();
+        PopulateButtons(upgrades);
+
+        if (_panel != null)
+            _panel.SetActive(true);
+
+        gameObject.SetActive(true);
+
+        Debug.Log($"[FullUpgradeWindow] Showing {upgrades.Length} upgrade(s).");
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    private void HideTemplate()
+    {
+        if (_templateHidden || _buttonTemplate == null) return;
+        _buttonTemplate.gameObject.SetActive(false);
+        _templateHidden = true;
+    }
+
+    // Finds the UpgradePool from any PlayerUpgradeHandler in the scene.
+    // Works at runtime without scene-level wiring.
+    private UpgradeDefinition[] FindUpgradesFromPlayer()
+    {
+        var handler = FindFirstObjectByType<PlayerUpgradeHandler>();
+        if (handler == null) return null;
+
+        return handler.UpgradePool?.upgrades;
+    }
+
+    private void PopulateButtons(UpgradeDefinition[] upgrades)
+    {
         ClearButtons();
 
         for (int i = 0; i < upgrades.Length; i++)
@@ -69,16 +112,7 @@ public class FullUpgradeWindow : MonoBehaviour
 
         if (_titleText != null)
             _titleText.text = $"Full Upgrade Window ({upgrades.Length} upgrades)";
-
-        if (_panel != null)
-            _panel.SetActive(true);
-
-        gameObject.SetActive(true);
-
-        Debug.Log($"[FullUpgradeWindow] Showing {upgrades.Length} upgrade(s).");
     }
-
-    // ── Private ───────────────────────────────────────────────────────────────
 
     private void OnButtonClicked(int index)
     {

@@ -23,6 +23,9 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     [Tooltip("Pool of all available upgrades. Assign the shared UpgradePool asset here.")]
     [SerializeField] private UpgradePool _upgradePool;
 
+    // Read by FullUpgradeWindow to auto-populate when manually enabled
+    public UpgradePool UpgradePool => _upgradePool;
+
     [Tooltip("How many upgrade options to present at level-up.")]
     [SerializeField] [Min(1)] private int _choiceCount = 3;
 
