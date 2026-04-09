@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 // Extension of the standard upgrade selection window (UpgradeSelectionUI).
 // While the standard window shows a random subset of 3 upgrades,
@@ -39,6 +40,7 @@ public class FullUpgradeWindow : MonoBehaviour
     private void OnEnable()
     {
         HideTemplate();
+        EnsureLayoutConfig();
 
         // Auto-populate when manually enabled and no buttons exist yet
         if (_spawnedButtons.Count > 0) return;
@@ -67,6 +69,7 @@ public class FullUpgradeWindow : MonoBehaviour
         _onChosen = onChosen;
 
         HideTemplate();
+        EnsureLayoutConfig();
         PopulateButtons(upgrades);
 
         if (_panel != null)
@@ -86,8 +89,35 @@ public class FullUpgradeWindow : MonoBehaviour
         _templateHidden = true;
     }
 
+    // Ensures the parent layout groups are configured to give the scroll view proper height.
+    // Fixes cases where the VerticalLayoutGroup above the ScrollView has childControlHeight off,
+    // which causes the scroll area to collapse to zero height.
+    private void EnsureLayoutConfig()
+    {
+        if (_contentParent == null) return;
+
+        // Walk up from Content → Viewport → ScrollView → parent with VerticalLayoutGroup
+        var scrollView = _contentParent.parent?.parent; // Content → Viewport → ScrollView
+        if (scrollView == null) return;
+
+        var layoutParent = scrollView.parent; // InnerPanel or similar
+        if (layoutParent == null) return;
+
+        var vlg = layoutParent.GetComponent<VerticalLayoutGroup>();
+        if (vlg != null)
+        {
+            vlg.childControlHeight = true;
+            vlg.childForceExpandHeight = false;
+        }
+
+        // Ensure ScrollView has a LayoutElement with flexible height so it fills available space
+        var scrollLE = scrollView.GetComponent<LayoutElement>();
+        if (scrollLE == null)
+            scrollLE = scrollView.gameObject.AddComponent<LayoutElement>();
+        scrollLE.flexibleHeight = 1f;
+    }
+
     // Finds the UpgradePool from any PlayerUpgradeHandler in the scene.
-    // Works at runtime without scene-level wiring.
     private UpgradeDefinition[] FindUpgradesFromPlayer()
     {
         var handler = FindFirstObjectByType<PlayerUpgradeHandler>();
@@ -112,6 +142,14 @@ public class FullUpgradeWindow : MonoBehaviour
 
         if (_titleText != null)
             _titleText.text = $"Full Upgrade Window ({upgrades.Length} upgrades)";
+
+        // Force layout rebuild so scroll view sizes correctly
+        if (_contentParent is RectTransform contentRT)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRT);
+
+        // Also rebuild the root panel to propagate layout changes up
+        if (_panel != null && _panel.TryGetComponent<RectTransform>(out var panelRT))
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panelRT);
     }
 
     private void OnButtonClicked(int index)

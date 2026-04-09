@@ -46,12 +46,12 @@ each player upgrade has name description type icon and Creation instructions (th
 create 2 attack player upgrades
 
 
-upgrade type :
-upgrade name : 
-description : 
-what it upgrade : 
- icon: none 
- create instruction : 
+1. **upgrade type :**
+2. **upgrade name :** 
+3. **description :** 
+4. **what it upgrade :** 
+ 5. **icon: none** 
+ 6. **create instruction :** 
 
 | Name          | Description                                         | What it upgrades        | Icon                                                | Creation instructions                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------- | --------------------------------------------------- | ----------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -91,3 +91,9 @@ what it upgrade :when the upgrade apply it  make the player move faster by 10%
  icon: none 
  create instruction : 
 
+1. **upgrade type :** attack 
+2. **upgrade name :**  jumpy attack
+3. **description :** when attack hit an enemy it jump to nearby enemy 
+4. **what it upgrade :** when player projectile hit an enemy i look for nearby enemy in radius 3 . and move where the enemy location at the hit time. projectile stats are same as before the hit i.e. same speed attack damage crit and etc.
+ 5. **icon: none** 
+ 6. **create instruction :** when player projectile hit an enemy it look for nearby enemy in radius 3 . and move where the enemy location at the hit time. projectile stats are same as before the hit i.e. same speed attack damage crit and etc. it can jump 2 time only. if no enemy at the radius it move the a random location
