@@ -48,10 +48,9 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     private RoomManager _roomManager;
 
     // Cached UI references (found once, reused on subsequent level-ups)
-    // Priority: FullUpgradeWindow > UpgradeAllSelectionUI > UpgradeSelectionUI
-    private FullUpgradeWindow     _cachedFullWindow;
-    private UpgradeSelectionUI    _cachedSelectionUI;
-    private UpgradeAllSelectionUI _cachedTestUI;
+    // Priority: FullUpgradeWindow > UpgradeSelectionUI
+    private FullUpgradeWindow  _cachedFullWindow;
+    private UpgradeSelectionUI _cachedSelectionUI;
     private bool _uiCached;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
@@ -103,19 +102,11 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
         CacheUI();
 
-        // Full upgrade window (reads from pool directly — highest priority)
+        // Full upgrade window shows all upgrades from pool (testing / debug)
         if (_cachedFullWindow != null)
         {
             _pendingChoices = _cachedFullWindow.GetAllUpgrades();
             _cachedFullWindow.Show(OnUpgradeChosen);
-            return;
-        }
-
-        // Legacy test UI (all upgrades passed explicitly)
-        if (_cachedTestUI != null)
-        {
-            _pendingChoices = _upgradePool.upgrades;
-            _cachedTestUI.Show(_pendingChoices, OnUpgradeChosen);
             return;
         }
 
@@ -175,7 +166,6 @@ public class PlayerUpgradeHandler : NetworkBehaviour
         if (_uiCached) return;
 
         _cachedFullWindow  = FindFirstObjectByType<FullUpgradeWindow>(FindObjectsInactive.Include);
-        _cachedTestUI      = FindFirstObjectByType<UpgradeAllSelectionUI>(FindObjectsInactive.Include);
         _cachedSelectionUI = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
         _uiCached = true;
     }

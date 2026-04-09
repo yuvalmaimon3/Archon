@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-// Test/debug upgrade window that shows EVERY upgrade in the pool.
+// Extension of the standard upgrade selection window (UpgradeSelectionUI).
+// While the standard window shows a random subset of 3 upgrades,
+// this window shows EVERY upgrade in the pool for testing and debugging.
+//
 // Reads directly from the UpgradePool asset — any new upgrade added to the pool
 // appears automatically the next time the window opens.
 //
-// PlayerUpgradeHandler detects this window (highest priority) and uses it
-// instead of the normal 3-choice UI or UpgradeAllSelectionUI.
+// PlayerUpgradeHandler detects this window (highest priority over UpgradeSelectionUI).
 //
 // Network: MonoBehaviour — local client only.
 //
