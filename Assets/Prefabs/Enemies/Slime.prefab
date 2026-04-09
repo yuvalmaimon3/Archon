@@ -232,7 +232,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3456789012345678, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
       propertyPath: GlobalObjectIdHash
-      value: 1902990884
+      value: 3710818274
       objectReference: {fileID: 0}
     - target: {fileID: 949350550131415999, guid: c2f0051b4e519d94696acfae0f394460, type: 3}
       propertyPath: m_LocalScale.x

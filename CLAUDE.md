@@ -10,6 +10,7 @@ At the start of every session, read all files in `.claude/memory/` to restore pr
 # Unity UI Hierarchy
 - All objects must be accessible via the Unity UI Hierarchy window unless there is a good reason otherwise.
 - as generals make importan variables as SerializeField
+- use Prefabs and Scriptable Objects reuse objects such player, enemies, traps, effects and etc.
 
 # Unity C# Code Standards
 
