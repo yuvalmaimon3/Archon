@@ -5,25 +5,19 @@ using UnityEngine;
 
 // Extension of the standard upgrade selection window (UpgradeSelectionUI).
 // While the standard window shows a random subset of 3 upgrades,
-// this window shows EVERY upgrade in the pool for testing and debugging.
+// this window shows EVERY upgrade for testing and debugging.
 //
-// Reads directly from the UpgradePool asset — any new upgrade added to the pool
-// appears automatically the next time the window opens.
-//
-// PlayerUpgradeHandler detects this window (highest priority over UpgradeSelectionUI).
+// The upgrades array is passed by PlayerUpgradeHandler from its own UpgradePool —
+// no scene-level pool wiring needed. Any upgrade added to the pool appears automatically.
 //
 // Network: MonoBehaviour — local client only.
 //
 // Setup:
 //   1. Add to a Canvas (Screen Space – Overlay).
-//   2. Assign _upgradePool, _panel, _contentParent, and _buttonTemplate.
+//   2. Assign _panel, _contentParent, and _buttonTemplate.
 //   3. Set the Canvas inactive by default — Show() activates it.
 public class FullUpgradeWindow : MonoBehaviour
 {
-    [Header("Data")]
-    [Tooltip("The upgrade pool to read from. New upgrades added here appear automatically.")]
-    [SerializeField] private UpgradePool _upgradePool;
-
     [Header("Panel")]
     [SerializeField] private GameObject      _panel;
     [SerializeField] private TextMeshProUGUI _titleText;
@@ -48,20 +42,14 @@ public class FullUpgradeWindow : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    // Returns the full upgrades array from the pool (used by PlayerUpgradeHandler
-    // to set _pendingChoices so the chosen index maps correctly to a pool index).
-    public UpgradeDefinition[] GetAllUpgrades()
+    // Opens the window showing the given upgrades.
+    // upgrades — full array from the pool (passed by PlayerUpgradeHandler).
+    // onChosen — fired with the 0-based index into the array when a button is clicked.
+    public void Show(UpgradeDefinition[] upgrades, Action<int> onChosen)
     {
-        return _upgradePool != null ? _upgradePool.upgrades : Array.Empty<UpgradeDefinition>();
-    }
-
-    // Opens the window showing all upgrades from the pool.
-    // onChosen — fired with the 0-based index into the pool's upgrades array.
-    public void Show(Action<int> onChosen)
-    {
-        if (_upgradePool == null || _upgradePool.upgrades.Length == 0)
+        if (upgrades == null || upgrades.Length == 0)
         {
-            Debug.LogWarning("[FullUpgradeWindow] No UpgradePool or pool is empty — ignored.");
+            Debug.LogWarning("[FullUpgradeWindow] No upgrades to show — ignored.");
             return;
         }
 
@@ -69,7 +57,6 @@ public class FullUpgradeWindow : MonoBehaviour
 
         ClearButtons();
 
-        var upgrades = _upgradePool.upgrades;
         for (int i = 0; i < upgrades.Length; i++)
         {
             if (upgrades[i] == null) continue;
@@ -88,7 +75,7 @@ public class FullUpgradeWindow : MonoBehaviour
 
         gameObject.SetActive(true);
 
-        Debug.Log($"[FullUpgradeWindow] Showing {upgrades.Length} upgrade(s) from pool.");
+        Debug.Log($"[FullUpgradeWindow] Showing {upgrades.Length} upgrade(s).");
     }
 
     // ── Private ───────────────────────────────────────────────────────────────

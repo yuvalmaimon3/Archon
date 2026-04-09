@@ -105,8 +105,8 @@ public class PlayerUpgradeHandler : NetworkBehaviour
         // Full upgrade window shows all upgrades from pool (testing / debug)
         if (_cachedFullWindow != null)
         {
-            _pendingChoices = _cachedFullWindow.GetAllUpgrades();
-            _cachedFullWindow.Show(OnUpgradeChosen);
+            _pendingChoices = _upgradePool.upgrades;
+            _cachedFullWindow.Show(_pendingChoices, OnUpgradeChosen);
             return;
         }
 
