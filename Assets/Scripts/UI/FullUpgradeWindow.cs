@@ -40,9 +40,9 @@ public class FullUpgradeWindow : MonoBehaviour
     private void OnEnable()
     {
         HideTemplate();
-        EnsureLayoutConfig();
 
-        // Auto-populate when manually enabled and no buttons exist yet
+        // Auto-populate when manually enabled and no buttons exist yet.
+        // Requires PlayerUpgradeHandler to be active in the scene (works in play mode once player spawns).
         if (_spawnedButtons.Count > 0) return;
 
         var upgrades = FindUpgradesFromPlayer();
@@ -73,7 +73,6 @@ public class FullUpgradeWindow : MonoBehaviour
         _onChosen = onChosen;
 
         HideTemplate();
-        EnsureLayoutConfig();
         PopulateButtons(upgrades);
 
         if (_panel != null)
@@ -91,34 +90,6 @@ public class FullUpgradeWindow : MonoBehaviour
         if (_templateHidden || _buttonTemplate == null) return;
         _buttonTemplate.gameObject.SetActive(false);
         _templateHidden = true;
-    }
-
-    // Ensures the parent layout groups are configured to give the scroll view proper height.
-    // Fixes cases where the VerticalLayoutGroup above the ScrollView has childControlHeight off,
-    // which causes the scroll area to collapse to zero height.
-    private void EnsureLayoutConfig()
-    {
-        if (_contentParent == null) return;
-
-        // Walk up from Content → Viewport → ScrollView → parent with VerticalLayoutGroup
-        var scrollView = _contentParent.parent?.parent; // Content → Viewport → ScrollView
-        if (scrollView == null) return;
-
-        var layoutParent = scrollView.parent; // InnerPanel or similar
-        if (layoutParent == null) return;
-
-        var vlg = layoutParent.GetComponent<VerticalLayoutGroup>();
-        if (vlg != null)
-        {
-            vlg.childControlHeight = true;
-            vlg.childForceExpandHeight = false;
-        }
-
-        // Ensure ScrollView has a LayoutElement with flexible height so it fills available space
-        var scrollLE = scrollView.GetComponent<LayoutElement>();
-        if (scrollLE == null)
-            scrollLE = scrollView.gameObject.AddComponent<LayoutElement>();
-        scrollLE.flexibleHeight = 1f;
     }
 
     // Finds the UpgradePool from any PlayerUpgradeHandler in the scene.
