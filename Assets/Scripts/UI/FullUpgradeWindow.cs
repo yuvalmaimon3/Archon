@@ -49,6 +49,10 @@ public class FullUpgradeWindow : MonoBehaviour
         if (upgrades != null && upgrades.Length > 0)
         {
             PopulateButtons(upgrades);
+
+            if (_panel != null)
+                _panel.SetActive(true);
+
             Debug.Log($"[FullUpgradeWindow] Auto-populated {upgrades.Length} upgrade(s) on enable.");
         }
     }
