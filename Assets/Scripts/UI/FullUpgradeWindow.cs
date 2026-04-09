@@ -2,19 +2,9 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
-// Extension of the standard upgrade selection window (UpgradeSelectionUI).
-// While the standard window shows a random subset of 3 upgrades,
-// this window shows EVERY upgrade for testing and debugging.
-//
-// Two ways to populate:
-//   1. PlayerUpgradeHandler calls Show(upgrades, callback) during level-up.
-//   2. Manually enabling the canvas in play mode — OnEnable auto-finds the
-//      UpgradePool from PlayerUpgradeHandler and populates the buttons.
-//
-// Any upgrade added to the pool appears automatically.
-//
+// Debug/testing window that shows ALL upgrades from the pool at once.
+// Works exactly like UpgradeSelectionUI but spawns one button per upgrade dynamically.
 // Network: MonoBehaviour — local client only.
 public class FullUpgradeWindow : MonoBehaviour
 {
@@ -22,58 +12,42 @@ public class FullUpgradeWindow : MonoBehaviour
     [SerializeField] private GameObject      _panel;
     [SerializeField] private TextMeshProUGUI _titleText;
 
-    [Header("Scroll")]
-    [Tooltip("Content transform inside the ScrollRect — buttons are parented here.")]
-    [SerializeField] private Transform          _contentParent;
-
-    [Tooltip("Template UpgradeOptionButton — hidden at Start, cloned per upgrade.")]
+    [Tooltip("Template button — hidden at Start, cloned once per upgrade.")]
     [SerializeField] private UpgradeOptionButton _buttonTemplate;
-
-    // ── Private ───────────────────────────────────────────────────────────────
 
     private Action<int>                        _onChosen;
     private readonly List<UpgradeOptionButton> _spawnedButtons = new();
-    private bool _templateHidden;
 
-    // ── Unity lifecycle ──────────────────────────────────────────────────────
-
-    private void OnEnable()
+    private void Start()
     {
-        HideTemplate();
-
-        // Auto-populate when manually enabled and no buttons exist yet.
-        // Requires PlayerUpgradeHandler to be active in the scene (works in play mode once player spawns).
-        if (_spawnedButtons.Count > 0) return;
-
-        var upgrades = FindUpgradesFromPlayer();
-        if (upgrades != null && upgrades.Length > 0)
-        {
-            PopulateButtons(upgrades);
-
-            if (_panel != null)
-                _panel.SetActive(true);
-
-            Debug.Log($"[FullUpgradeWindow] Auto-populated {upgrades.Length} upgrade(s) on enable.");
-        }
+        if (_buttonTemplate != null)
+            _buttonTemplate.gameObject.SetActive(false);
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
-    // Opens the window showing the given upgrades.
-    // upgrades — full array from the pool (passed by PlayerUpgradeHandler).
-    // onChosen — fired with the 0-based index into the array when a button is clicked.
+    // Called by PlayerUpgradeHandler with all upgrades in the pool.
     public void Show(UpgradeDefinition[] upgrades, Action<int> onChosen)
     {
         if (upgrades == null || upgrades.Length == 0)
         {
-            Debug.LogWarning("[FullUpgradeWindow] No upgrades to show — ignored.");
+            Debug.LogWarning("[FullUpgradeWindow] No upgrades to show.");
             return;
         }
 
         _onChosen = onChosen;
 
-        HideTemplate();
-        PopulateButtons(upgrades);
+        ClearButtons();
+
+        for (int i = 0; i < upgrades.Length; i++)
+        {
+            if (upgrades[i] == null) continue;
+            var btn = Instantiate(_buttonTemplate, _buttonTemplate.transform.parent);
+            btn.gameObject.SetActive(true);
+            btn.Setup(upgrades[i], i, OnButtonClicked);
+            _spawnedButtons.Add(btn);
+        }
+
+        if (_titleText != null)
+            _titleText.text = $"All Upgrades ({upgrades.Length})";
 
         if (_panel != null)
             _panel.SetActive(true);
@@ -81,50 +55,6 @@ public class FullUpgradeWindow : MonoBehaviour
         gameObject.SetActive(true);
 
         Debug.Log($"[FullUpgradeWindow] Showing {upgrades.Length} upgrade(s).");
-    }
-
-    // ── Private ───────────────────────────────────────────────────────────────
-
-    private void HideTemplate()
-    {
-        if (_templateHidden || _buttonTemplate == null) return;
-        _buttonTemplate.gameObject.SetActive(false);
-        _templateHidden = true;
-    }
-
-    // Finds the UpgradePool from any PlayerUpgradeHandler in the scene.
-    private UpgradeDefinition[] FindUpgradesFromPlayer()
-    {
-        var handler = FindFirstObjectByType<PlayerUpgradeHandler>();
-        if (handler == null) return null;
-
-        return handler.UpgradePool?.upgrades;
-    }
-
-    private void PopulateButtons(UpgradeDefinition[] upgrades)
-    {
-        ClearButtons();
-
-        for (int i = 0; i < upgrades.Length; i++)
-        {
-            if (upgrades[i] == null) continue;
-
-            var btn = Instantiate(_buttonTemplate, _contentParent);
-            btn.gameObject.SetActive(true);
-            btn.Setup(upgrades[i], i, OnButtonClicked);
-            _spawnedButtons.Add(btn);
-        }
-
-        if (_titleText != null)
-            _titleText.text = $"Full Upgrade Window ({upgrades.Length} upgrades)";
-
-        // Force layout rebuild so scroll view sizes correctly
-        if (_contentParent is RectTransform contentRT)
-            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRT);
-
-        // Also rebuild the root panel to propagate layout changes up
-        if (_panel != null && _panel.TryGetComponent<RectTransform>(out var panelRT))
-            LayoutRebuilder.ForceRebuildLayoutImmediate(panelRT);
     }
 
     private void OnButtonClicked(int index)
@@ -147,7 +77,6 @@ public class FullUpgradeWindow : MonoBehaviour
     {
         foreach (var btn in _spawnedButtons)
             if (btn != null) Destroy(btn.gameObject);
-
         _spawnedButtons.Clear();
     }
 }
