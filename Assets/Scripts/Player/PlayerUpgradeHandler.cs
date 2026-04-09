@@ -48,6 +48,8 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     private RoomManager _roomManager;
 
     // Cached UI references (found once, reused on subsequent level-ups)
+    // Priority: FullUpgradeWindow > UpgradeAllSelectionUI > UpgradeSelectionUI
+    private FullUpgradeWindow     _cachedFullWindow;
     private UpgradeSelectionUI    _cachedSelectionUI;
     private UpgradeAllSelectionUI _cachedTestUI;
     private bool _uiCached;
@@ -101,7 +103,15 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
         CacheUI();
 
-        // Test UI (all upgrades) takes priority over the normal 3-choice UI
+        // Full upgrade window (reads from pool directly — highest priority)
+        if (_cachedFullWindow != null)
+        {
+            _pendingChoices = _cachedFullWindow.GetAllUpgrades();
+            _cachedFullWindow.Show(OnUpgradeChosen);
+            return;
+        }
+
+        // Legacy test UI (all upgrades passed explicitly)
         if (_cachedTestUI != null)
         {
             _pendingChoices = _upgradePool.upgrades;
@@ -164,6 +174,7 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     {
         if (_uiCached) return;
 
+        _cachedFullWindow  = FindFirstObjectByType<FullUpgradeWindow>(FindObjectsInactive.Include);
         _cachedTestUI      = FindFirstObjectByType<UpgradeAllSelectionUI>(FindObjectsInactive.Include);
         _cachedSelectionUI = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
         _uiCached = true;
