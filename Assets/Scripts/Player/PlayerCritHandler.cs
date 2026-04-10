@@ -11,7 +11,7 @@ public class PlayerCritHandler : MonoBehaviour
 {
     [Header("Crit Stats")]
     [Tooltip("Base chance for an attack to be a critical hit (0–1).")]
-    [SerializeField] private float baseCritChance = 0.05f;   // 5%
+    [SerializeField] private float baseCritChance = 0.50f;   // 50%
 
     [Tooltip("Bonus damage multiplier on a critical hit. 0.5 = +50% damage.")]
     [SerializeField] private float baseCritDamage = 0.50f;   // +50%
