@@ -1,7 +1,7 @@
 important the project should be clear as possible so i can be involve in the code and on the whole process
 
 # Memory
-At the start of every session, read all files in `.claude/memory/` to restore project context (game design, decisions, feedback from past sessions). When on a new machine, also copy those files into `~/.claude/projects/<project-path>/memory/` so the auto-memory system works locally.
+At the start of each session, read only the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/` only when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
 
 # Code Comments
 - Only explain non-trivial decisions — avoid stating the obvious.

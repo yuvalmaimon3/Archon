@@ -1,48 +1,40 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
-// Screen-space upgrade selection dialog shown to the local player on level-up.
-// Activated by PlayerUpgradeHandler (on the owner's machine only).
-// Displays up to 3 upgrade options as buttons; hides itself after a choice is made.
-//
-// Network: MonoBehaviour — this UI lives only on the local client.
-//          No networking needed; PlayerUpgradeHandler sends the choice to the server.
-//
-// Setup in Unity:
-//   1. Create a Canvas (Screen Space – Overlay) in the scene.
-//   2. Add this component to the Canvas root.
-//   3. Add a child Panel for the background.
-//   4. Add a TextMeshProUGUI title inside the panel.
-//   5. Add 3 child GameObjects with UpgradeOptionButton, assigned to _optionButtons[].
-//   6. Set the Canvas inactive by default — Show() activates it.
+// Upgrade selection dialog shown to the local player on level-up.
+// Dynamically spawns one button per option inside a ScrollView — supports any count.
+// Activated by PlayerUpgradeHandler (owner only). Network: MonoBehaviour, local client only.
 public class UpgradeSelectionUI : MonoBehaviour
 {
-    // ── Inspector ─────────────────────────────────────────────────────────────
-
     [Header("Panel")]
-    [Tooltip("The root panel GameObject shown/hidden when the dialog opens/closes. " +
-             "Usually the direct child of the Canvas.")]
-    [SerializeField] private GameObject _panel;
-
-    [Tooltip("Optional title text (e.g. 'Choose an Upgrade'). Set in the Inspector.")]
+    [SerializeField] private GameObject      _panel;
     [SerializeField] private TextMeshProUGUI _titleText;
 
-    [Header("Option Buttons")]
-    [Tooltip("The three upgrade option buttons. Assign all three in the Inspector. " +
-             "Buttons with no matching upgrade will be hidden.")]
-    [SerializeField] private UpgradeOptionButton[] _optionButtons;
+    [Header("Scroll")]
+    [SerializeField] private ScrollRect          _scrollRect;
+    [SerializeField] private Transform           _contentContainer;
+
+    [Tooltip("Hidden template button — cloned once per upgrade option.")]
+    [SerializeField] private UpgradeOptionButton _buttonTemplate;
 
     // ── Private state ────────────────────────────────────────────────────────
 
-    // Callback provided by PlayerUpgradeHandler — fired with the chosen button index.
-    private Action<int> _onChosen;
+    private Action<int>                        _onChosen;
+    private readonly List<UpgradeOptionButton> _spawnedButtons = new();
+
+    // ── Unity lifecycle ──────────────────────────────────────────────────────
+
+    private void Start()
+    {
+        if (_buttonTemplate != null)
+            _buttonTemplate.gameObject.SetActive(false);
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    // Shows the dialog with the given upgrade options.
-    // 'options'  — the subset of upgrades to display (1–3 entries).
-    // 'onChosen' — called once with the 0-based choice index when a button is clicked.
     public void Show(UpgradeDefinition[] options, Action<int> onChosen)
     {
         if (options == null || options.Length == 0)
@@ -53,15 +45,15 @@ public class UpgradeSelectionUI : MonoBehaviour
 
         _onChosen = onChosen;
 
-        // Populate buttons that have a matching upgrade, hide the rest
-        for (int i = 0; i < _optionButtons.Length; i++)
-        {
-            if (_optionButtons[i] == null) continue;
+        ClearButtons();
 
-            if (i < options.Length)
-                _optionButtons[i].Setup(options[i], i, OnButtonClicked);
-            else
-                _optionButtons[i].Hide();
+        for (int i = 0; i < options.Length; i++)
+        {
+            if (options[i] == null) continue;
+
+            var btn = Instantiate(_buttonTemplate, _contentContainer);
+            btn.Setup(options[i], i, OnButtonClicked);
+            _spawnedButtons.Add(btn);
         }
 
         if (_titleText != null)
@@ -72,12 +64,15 @@ public class UpgradeSelectionUI : MonoBehaviour
 
         gameObject.SetActive(true);
 
+        // Scroll to top
+        if (_scrollRect != null)
+            _scrollRect.verticalNormalizedPosition = 1f;
+
         Debug.Log($"[UpgradeSelectionUI] Showing {options.Length} upgrade option(s).");
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    // Fired when any option button is clicked. Hides the dialog and invokes the callback.
     private void OnButtonClicked(int index)
     {
         Debug.Log($"[UpgradeSelectionUI] Option {index} chosen.");
@@ -87,9 +82,17 @@ public class UpgradeSelectionUI : MonoBehaviour
 
         gameObject.SetActive(false);
 
-        // Invoke and clear the callback (prevents accidental double-fire)
+        ClearButtons();
+
         var callback = _onChosen;
         _onChosen    = null;
         callback?.Invoke(index);
+    }
+
+    private void ClearButtons()
+    {
+        foreach (var btn in _spawnedButtons)
+            if (btn != null) Destroy(btn.gameObject);
+        _spawnedButtons.Clear();
     }
 }
