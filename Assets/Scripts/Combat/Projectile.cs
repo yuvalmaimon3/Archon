@@ -78,6 +78,9 @@ public class Projectile : NetworkBehaviour
     private float            _splitAngle;
     private AttackDefinition _splitAttackDef;
 
+    // The enemy collider this split ball was born inside — ignored until exited.
+    private Collider _spawnIgnoreCollider;
+
     // ── Life steal (Life Steal upgrade) ──────────────────────────────────────
     // Server-side only. When true, hitting an enemy heals the source player
     // by _lifeStealFraction of their max HP.
@@ -186,6 +189,10 @@ public class Projectile : NetworkBehaviour
         _lifeStealFraction = fraction;
     }
 
+    // Called on split projectiles so they skip the enemy they were born inside.
+    // Cleared in OnTriggerExit — once the ball exits, bounces can re-hit freely.
+    public void SetSpawnIgnoreCollider(Collider col) => _spawnIgnoreCollider = col;
+
     // Called server-side by PlayerCombatBrain after spawning this projectile.
     // Marks the projectile to spawn 3 split children on the next enemy hit.
     // Split projectiles never get ConfigureSplit called — no recursive splitting.
@@ -214,6 +221,9 @@ public class Projectile : NetworkBehaviour
         if (_source != null &&
             (other.gameObject == _source || other.transform.IsChildOf(_source.transform)))
             return;
+
+        // Skip the enemy this split ball spawned inside — cleared once we exit its collider.
+        if (_spawnIgnoreCollider != null && other == _spawnIgnoreCollider) return;
 
         _hasHit = true;
 
@@ -257,7 +267,7 @@ public class Projectile : NetworkBehaviour
             // Shotgun upgrade: spawn 3 split projectiles on enemy hit (server only).
             // Split projectiles never split again — ConfigureSplit is intentionally not called on them.
             if (_splitOnHit && _splitAttackDef != null)
-                SpawnSplitProjectiles();
+                SpawnSplitProjectiles(other);
         }
         else
         {
@@ -268,6 +278,13 @@ public class Projectile : NetworkBehaviour
         DestroyProjectile();
     }
 
+    private void OnTriggerExit(Collider other)
+    {
+        // Once the split ball physically leaves the source enemy, allow re-hits (e.g. after a bounce).
+        if (other == _spawnIgnoreCollider)
+            _spawnIgnoreCollider = null;
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     // Spawns 3 split projectiles at this projectile's position:
@@ -275,7 +292,7 @@ public class Projectile : NetworkBehaviour
     //   - one rotated +_splitAngle degrees around the Y axis
     //   - one rotated -_splitAngle degrees around the Y axis
     // Server-only — called from OnTriggerEnter (which is already guarded by !IsServer return).
-    private void SpawnSplitProjectiles()
+    private void SpawnSplitProjectiles(Collider hitCollider)
     {
         Vector3[] splitDirs =
         {
@@ -298,6 +315,9 @@ public class Projectile : NetworkBehaviour
                 transform.position,
                 Quaternion.LookRotation(dir)
             );
+
+            // Prevent the split ball from immediately re-hitting the enemy it was born inside.
+            splitProjectile.SetSpawnIgnoreCollider(hitCollider);
 
             if (_isNetworked)
             {
