@@ -1,10 +1,11 @@
 important the project should be clear as possible so i can be involve in the code and on the whole process
 
 # MCP
-- if there is any problem with unity mcp. stop and tell me about it.
+- if the mcp not connect try to reconnect. if the MCP still not workring stop and tell me
+
 
 # Memory
-At the start of each session, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
+At the start of each session run 'git branch' look at the current brnach name to get context, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
 
 # Code Comments
 - Only explain non-trivial decisions — avoid stating the obvious.
@@ -18,7 +19,7 @@ At the start of each session, read  the essential memory files needed to restore
 # Unity C# Code Standards
 
 Write production-quality Unity C# code as a professional.
-
+a
 ## Design & Architecture
 - Use design patterns when appropriate.
 - Always implement features in a scalable, maintainable, and production-ready way — even if the request is simple.
