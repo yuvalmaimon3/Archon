@@ -23,9 +23,6 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     [Tooltip("Pool of all available upgrades. Assign the shared UpgradePool asset here.")]
     [SerializeField] private UpgradePool _upgradePool;
 
-    // Read by FullUpgradeWindow to auto-populate when manually enabled
-    public UpgradePool UpgradePool => _upgradePool;
-
     [Tooltip("How many upgrade options to present at level-up.")]
     [SerializeField] [Min(1)] private int _choiceCount = 3;
 
@@ -50,9 +47,7 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     // Cached on the server so we don't call FindFirstObjectByType every upgrade.
     private RoomManager _roomManager;
 
-    // Cached UI references (found once, reused on subsequent level-ups)
-    // Priority: FullUpgradeWindow > UpgradeSelectionUI
-    private FullUpgradeWindow  _cachedFullWindow;
+    // Cached UI reference (found once, reused on subsequent level-ups)
     private UpgradeSelectionUI _cachedSelectionUI;
     private bool _uiCached;
 
@@ -105,15 +100,7 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
         CacheUI();
 
-        // Full upgrade window shows all upgrades from pool (testing / debug)
-        if (_cachedFullWindow != null)
-        {
-            _pendingChoices = _upgradePool.upgrades;
-            _cachedFullWindow.Show(_pendingChoices, OnUpgradeChosen);
-            return;
-        }
-
-        // Normal flow: pick a random subset, filtering out non-stackable upgrades already acquired
+        // Pick a random subset, filtering out non-stackable upgrades already acquired
         _pendingChoices = _upgradePool.GetRandomSelection(_choiceCount, _acquiredUpgrades);
 
         if (_pendingChoices.Length == 0)
@@ -168,7 +155,6 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     {
         if (_uiCached) return;
 
-        _cachedFullWindow  = FindFirstObjectByType<FullUpgradeWindow>(FindObjectsInactive.Include);
         _cachedSelectionUI = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
         _uiCached = true;
     }
