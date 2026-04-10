@@ -13,5 +13,5 @@ public interface IElementReceiver
     /// Passed through to the ReactionResult so ReactionDamageHandler can compute
     /// reaction damage (e.g. x2). Use 0 for pure element applications with no attack context.
     /// </param>
-    void ApplyElement(ElementApplication application, int baseDamage = 0);
+    void ApplyElement(ElementApplication application, int baseDamage = 0, bool isCritical = false);
 }
