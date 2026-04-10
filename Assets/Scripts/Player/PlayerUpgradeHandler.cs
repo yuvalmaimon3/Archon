@@ -156,6 +156,11 @@ public class PlayerUpgradeHandler : NetworkBehaviour
         if (_uiCached) return;
 
         _cachedSelectionUI = FindFirstObjectByType<UpgradeSelectionUI>(FindObjectsInactive.Include);
+
+        // No UI in scene — build it at runtime
+        if (_cachedSelectionUI == null)
+            _cachedSelectionUI = UpgradeSelectionUI.CreateInstance();
+
         _uiCached = true;
     }
 

@@ -36,6 +36,14 @@ public class UpgradeOptionButton : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    // Used by UpgradeSelectionUI.CreateInstance() to wire references at runtime
+    public void SetReferences(TextMeshProUGUI nameText, TextMeshProUGUI descText, Button button)
+    {
+        _nameText        = nameText;
+        _descriptionText = descText;
+        _button          = button;
+    }
+
     // Configures this button to display the given upgrade and fire 'onClick' with
     // the button's index when clicked. Called by UpgradeSelectionUI before showing the panel.
     public void Setup(UpgradeDefinition upgrade, int index, System.Action<int> onClick)
