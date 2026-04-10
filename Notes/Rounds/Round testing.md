@@ -12,3 +12,6 @@ change rounds timer.
 
 **Test 3** 
 check how much exp the player gain at the end of the rounds
+
+**Test 4**
+check round timer when pause 

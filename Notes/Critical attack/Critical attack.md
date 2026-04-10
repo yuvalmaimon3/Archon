@@ -28,7 +28,7 @@ critical rate/damage calculate on base damage and apply on the whole attack chai
 base critical stats are 
 critical chance - 50%
 critical damage - +50%
-* player have base critical stats by default
+* players have base critical stats by default
 * enemies dont make critical attack for now
 
 what attack can do critical damage?
