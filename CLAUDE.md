@@ -4,7 +4,7 @@ important the project should be clear as possible so i can be involve in the cod
 - if there is any problem with unity mcp. stop and tell me about it.
 
 # Memory
-At the start of each session, read only the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/` only when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
+At the start of each session, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
 
 # Code Comments
 - Only explain non-trivial decisions — avoid stating the obvious.
