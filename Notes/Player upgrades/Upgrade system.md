@@ -63,7 +63,8 @@ create 2 attack player upgrades
 
 
 
-upgrade name : Shotgun
+TESTED
+upgrade name : Shotgun 
 description : When a ball hits an enemy, it creates 3 more balls.
 what it upgrade : Projectile split when hit an enemy
  icon: none 
@@ -77,6 +78,7 @@ what it upgrade : reaction
 icon: none 
 create instruction : When a reaction occurs, create an explosion at the reaction position. The explosion affects enemies in a radius of 2 and deals damage equal to the reaction damage.
 
+TESTED
 upgrade type : attack
 upgrade name : Life steal
 description : Hit an enemy adding HP 

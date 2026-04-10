@@ -174,17 +174,17 @@ public class PlayerLevelSystem : NetworkBehaviour
         // Note: Heal fires Health.OnDamaged which NetworkHealthSync catches server-side
         // and updates _syncedHealth — so the healed HP is automatically propagated to clients.
 
-        // ── Damage boost: cumulative 5% per level ────────────────────────────
-        // Pow formula ensures correct compounding: level 3 = 1.05^2 = 1.1025
-        float damageMult = Mathf.Pow(1f + _config.damageBonusPercent, _level.Value - 1);
+        // ── Damage boost: +damageBonusPercent% per level ────────────────────
+        // Applied incrementally so upgrade bonuses stacked on the multiplier are preserved.
+        float levelBonus = 1f + _config.damageBonusPercent;
         foreach (var ac in _attackControllers)
-            ac.SetDamageMultiplier(damageMult);
+            ac.SetDamageMultiplier(ac.DamageMultiplier * levelBonus);
 
         // ── Visual effects: fire on all clients ─────────────────────────────
         TriggerLevelUpEffectsClientRpc(_level.Value);
 
         Debug.Log($"[PlayerLevelSystem] '{name}' leveled up to {_level.Value}! " +
-                  $"MaxHP: {newMaxHp}, Heal: {healAmount}, DmgMult: {damageMult:F3}");
+                  $"MaxHP: {newMaxHp}, Heal: {healAmount}, DmgBonus: +{_config.damageBonusPercent * 100f:F0}%");
     }
 
     // Fires on ALL clients (including the host) to trigger local visual/audio effects.
