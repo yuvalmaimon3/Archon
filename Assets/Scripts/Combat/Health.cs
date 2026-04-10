@@ -123,9 +123,10 @@ public class Health : MonoBehaviour, IDamageable
         }
 
         // Forward element to ElementStatusController.
-        // Pass baseDamage so the ReactionResult carries it for damage calculation.
+        // Pass baseDamage and isCritical so the ReactionResult carries them for damage + display.
         if (_elementStatus != null && hasElement)
-            _elementStatus.ApplyElement(damageInfo.ElementApplication, damageInfo.Amount);
+            _elementStatus.ApplyElement(damageInfo.ElementApplication, damageInfo.Amount,
+                                        damageInfo.IsCritical);
 
         // Guard with !IsDead — ReactionDamageHandler's TakeDamage (called synchronously
         // inside ApplyElement above) may have already triggered death via Die().

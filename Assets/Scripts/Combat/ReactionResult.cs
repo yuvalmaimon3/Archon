@@ -43,10 +43,15 @@ public readonly struct ReactionResult
     // reactions caused by their owner's attacks.
     public readonly GameObject Source;
 
+    // True if the attack that triggered this reaction was a critical hit.
+    // Propagated so reaction damage numbers display in crit color.
+    public readonly bool IsCritical;
+
     public ReactionResult(bool hasReaction, ReactionType reactionType,
                           ReactionOutcomeType outcomeType,
                           ElementType resultElement, float resultStrength,
-                          int baseDamage = 0, GameObject source = null)
+                          int baseDamage = 0, GameObject source = null,
+                          bool isCritical = false)
     {
         HasReaction    = hasReaction;
         ReactionType   = reactionType;
@@ -55,6 +60,7 @@ public readonly struct ReactionResult
         ResultStrength = resultStrength;
         BaseDamage     = baseDamage;
         Source         = source;
+        IsCritical     = isCritical;
     }
 
     /// <summary>
@@ -62,12 +68,17 @@ public readonly struct ReactionResult
     /// Used by ElementStatusController to attach the triggering attack's damage.
     /// </summary>
     public ReactionResult WithBaseDamage(int baseDamage) => new ReactionResult(
-        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, baseDamage, Source
+        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, baseDamage, Source, IsCritical
     );
 
     // Returns a copy with Source set (the player whose attack triggered the reaction).
     public ReactionResult WithSource(GameObject source) => new ReactionResult(
-        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, BaseDamage, source
+        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, BaseDamage, source, IsCritical
+    );
+
+    // Returns a copy with IsCritical set (from the triggering attack's crit roll).
+    public ReactionResult WithIsCritical(bool isCritical) => new ReactionResult(
+        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, BaseDamage, Source, isCritical
     );
 
     /// <summary>
