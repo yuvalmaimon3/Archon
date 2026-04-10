@@ -8,7 +8,8 @@
       "d:\\Unity2026\\Arcon\\Assets"
     ]
   },
-  "disabledMcpjsonServers": [
+  "enabledMcpjsonServers": [
     "ai-game-developer"
-  ]
+  ],
+  "enableAllProjectMcpServers": true
 }

@@ -39,6 +39,13 @@ public class PlayerCombatBrain : NetworkBehaviour
     // Track the previous target to avoid spamming the log every frame.
     private Transform _lastLoggedTarget;
 
+    // Holds active projectile-modifying upgrades (e.g. Shotgun split).
+    // Consulted on the server inside SpawnProjectileServerRpc.
+    private PlayerProjectileModifiers _projectileModifiers;
+
+    // Crit stats — server reads this when rolling crit for projectile spawns.
+    private PlayerCritHandler _critHandler;
+
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
@@ -49,6 +56,11 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         if (attackController == null)
             Debug.LogError($"[PlayerCombatBrain] {gameObject.name} has no AttackController assigned or found.", this);
+
+        // Optional — only present when a projectile-modifying upgrade has been applied.
+        _projectileModifiers = GetComponent<PlayerProjectileModifiers>();
+
+        _critHandler = GetComponent<PlayerCritHandler>();
     }
 
     private void Update()
@@ -162,18 +174,44 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         projectile.NetworkObject.Spawn();
 
+        // Roll crit on the server — bake the multiplier into damage so the entire
+        // attack chain (reactions, upgrades) automatically benefits from the crit.
+        if (_critHandler == null)
+            _critHandler = GetComponent<PlayerCritHandler>();
+
+        bool isCritical   = _critHandler != null && _critHandler.RollCrit();
+        int  baseDamage   = attackController.EffectiveDamage;
+        int  finalDamage  = isCritical
+            ? Mathf.RoundToInt(baseDamage * _critHandler.CritMultiplier)
+            : baseDamage;
+
+        if (isCritical)
+            Debug.Log($"[PlayerCombatBrain] CRITICAL HIT! {baseDamage} → {finalDamage} damage.");
+
         // Send trajectory and stats to all clients so each can simulate locally.
         // The deterministic straight-line movement guarantees identical results everywhere.
-        // Use EffectiveDamage so any damage multipliers (buffs, scaling) are applied.
         projectile.InitializeClientRpc(
-            damage:          attackController.EffectiveDamage,
+            damage:          finalDamage,
             sourceRef:       NetworkObject,
             direction:       direction,
             speed:           def.ProjectileSpeed,
             elementType:     def.ElementType,
             elementStrength: def.ElementStrength,
-            targetTag:       def.ProjectileTargetTag
+            targetTag:       def.ProjectileTargetTag,
+            isCritical:      isCritical
         );
+
+        // Apply projectile modifiers from active upgrades (e.g. Shotgun split).
+        // ConfigureSplit is server-only — no RPC needed, the split spawning also runs on the server.
+        // Re-read _projectileModifiers in case it was added after Awake (upgrade applied mid-session).
+        if (_projectileModifiers == null)
+            _projectileModifiers = GetComponent<PlayerProjectileModifiers>();
+
+        if (_projectileModifiers != null && _projectileModifiers.SplitOnHit)
+            projectile.ConfigureSplit(_projectileModifiers.SplitAngleDegrees, def);
+
+        if (_projectileModifiers != null && _projectileModifiers.LifeSteal)
+            projectile.ConfigureLifeSteal(_projectileModifiers.LifeStealFraction);
 
         Debug.Log($"[PlayerCombatBrain] Server spawned '{def.AttackId}' for '{name}' (networked).");
     }

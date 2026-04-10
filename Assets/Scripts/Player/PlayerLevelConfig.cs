@@ -20,8 +20,18 @@ public class PlayerLevelConfig : ScriptableObject
     [Tooltip("EXP required to advance each level.\n" +
              "Index 0 = EXP needed to go from level 1 to 2.\n" +
              "Index 1 = EXP needed to go from level 2 to 3, etc.\n" +
-             "Array must contain (maxLevel - 1) entries.")]
-    public int[] expPerLevel = { 100, 200, 350, 500, 700, 950, 1250, 1600, 2000 };
+             "Array must contain (maxLevel - 1) entries.\n\n" +
+             "Tuned for 25 EXP per room:\n" +
+             "  L1→2: 25  (1 room)\n" +
+             "  L2→3: 50  (2 rooms)\n" +
+             "  L3→4: 75  (3 rooms)\n" +
+             "  L4→5: 100 (4 rooms)\n" +
+             "  L5→6: 150 (6 rooms)\n" +
+             "  L6→7: 200 (8 rooms)\n" +
+             "  L7→8: 275 (11 rooms)\n" +
+             "  L8→9: 375 (15 rooms)\n" +
+             "  L9→10: 500 (20 rooms)")]
+    public int[] expPerLevel = { 25, 50, 75, 100, 150, 200, 275, 375, 500 };
 
     [Header("Level-Up Bonuses")]
     [Tooltip("Percentage added to max HP on each level-up. 0.05 = 5%.")]

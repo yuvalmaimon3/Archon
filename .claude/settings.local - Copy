@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ai-game-developer__*"
+    ],
+    "additionalDirectories": [
+      "d:\\Unity2026\\Arcon\\Assets\\Scripts",
+      "d:\\Unity2026\\Arcon\\Assets"
+    ]
+  },
+  "disabledMcpjsonServers": [
+    "ai-game-developer"
+  ]
+}

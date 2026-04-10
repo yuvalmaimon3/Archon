@@ -98,6 +98,15 @@ public class PlayerMovement : NetworkBehaviour
         ApplyMovement(input);
     }
 
+    // Permanently increases the player's move speed by the given amount.
+    // Called by PlayerUpgradeHandler on the server when the player picks a MoveSpeedFlat upgrade.
+    // The change persists for the rest of the run (stats carry between rooms).
+    public void AddSpeedBonus(float bonus)
+    {
+        moveSpeed = Mathf.Max(0f, moveSpeed + bonus);
+        Debug.Log($"[PlayerMovement] '{name}' move speed +{bonus} → {moveSpeed}");
+    }
+
     /// <summary>
     /// Core movement logic. Smoothly accelerates toward the target velocity
     /// or decelerates to a stop when there is no input.

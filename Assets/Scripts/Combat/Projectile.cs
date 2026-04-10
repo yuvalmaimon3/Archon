@@ -53,6 +53,7 @@ public class Projectile : NetworkBehaviour
     private Vector3            _direction;
     private float              _speed;
     private ElementApplication _elementApplication;
+    private bool               _isCritical;
 
     private bool _isInitialized;
 
@@ -68,6 +69,24 @@ public class Projectile : NetworkBehaviour
     private Coroutine _lifetimeCoroutine;
 
     private Rigidbody _rb;
+
+    // ── Split config (Shotgun upgrade) ───────────────────────────────────────
+    // Set server-side by PlayerCombatBrain after spawning. Never set on split
+    // projectiles themselves — prevents infinite recursive splitting.
+
+    private bool             _splitOnHit;
+    private float            _splitAngle;
+    private AttackDefinition _splitAttackDef;
+
+    // The enemy collider this split ball was born inside — ignored until exited.
+    private Collider _spawnIgnoreCollider;
+
+    // ── Life steal (Life Steal upgrade) ──────────────────────────────────────
+    // Server-side only. When true, hitting an enemy heals the source player
+    // by _lifeStealFraction of their max HP.
+
+    private bool  _hasLifeSteal;
+    private float _lifeStealFraction;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -110,7 +129,7 @@ public class Projectile : NetworkBehaviour
     public void InitializeClientRpc(int damage, NetworkObjectReference sourceRef,
                                      Vector3 direction, float speed,
                                      ElementType elementType, float elementStrength,
-                                     string targetTag)
+                                     string targetTag, bool isCritical = false)
     {
         _isNetworked          = true;
         _source               = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
@@ -119,6 +138,7 @@ public class Projectile : NetworkBehaviour
         _speed                = speed;
         _elementApplication   = new ElementApplication(elementType, elementStrength, _source);
         _targetTag            = targetTag;
+        _isCritical           = isCritical;
         _displayElementType   = elementType;
         _isInitialized        = true;
 
@@ -126,7 +146,7 @@ public class Projectile : NetworkBehaviour
         _rb.linearVelocity = _direction * _speed;
 
         Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementType}, lifetime:{lifetime}s");
+                  $"element:{elementType}, lifetime:{lifetime}s, crit:{isCritical}");
     }
 
     // ── Standalone initialization ─────────────────────────────────────────────
@@ -137,7 +157,8 @@ public class Projectile : NetworkBehaviour
     /// Manages lifetime locally via Destroy().
     /// </summary>
     public void Initialize(int damage, GameObject source, Vector3 direction, float speed,
-                           ElementApplication elementApplication, string targetTag)
+                           ElementApplication elementApplication, string targetTag,
+                           bool isCritical = false)
     {
         _isNetworked          = false;
         _damage               = damage;
@@ -146,6 +167,7 @@ public class Projectile : NetworkBehaviour
         _speed                = speed;
         _elementApplication   = elementApplication;
         _targetTag            = targetTag;
+        _isCritical           = isCritical;
         _displayElementType   = elementApplication.Element;
         _isInitialized        = true;
 
@@ -156,7 +178,30 @@ public class Projectile : NetworkBehaviour
         Destroy(gameObject, lifetime);
 
         Debug.Log($"[Projectile] Initialized (standalone) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementApplication.Element}, lifetime:{lifetime}s");
+                  $"element:{elementApplication.Element}, lifetime:{lifetime}s, crit:{isCritical}");
+    }
+
+    // ── Split API ────────────────────────────────────────────────────────────
+
+    public void ConfigureLifeSteal(float fraction)
+    {
+        _hasLifeSteal      = true;
+        _lifeStealFraction = fraction;
+    }
+
+    // Called on split projectiles so they skip the enemy they were born inside.
+    // Cleared in OnTriggerExit — once the ball exits, bounces can re-hit freely.
+    public void SetSpawnIgnoreCollider(Collider col) => _spawnIgnoreCollider = col;
+
+    // Called server-side by PlayerCombatBrain after spawning this projectile.
+    // Marks the projectile to spawn 3 split children on the next enemy hit.
+    // Split projectiles never get ConfigureSplit called — no recursive splitting.
+    public void ConfigureSplit(float angleDeg, AttackDefinition attackDef)
+    {
+        _splitOnHit    = true;
+        _splitAngle    = angleDeg;
+        _splitAttackDef = attackDef;
+        Debug.Log($"[Projectile] Split configured — angle:{angleDeg}°, def:'{attackDef?.AttackId}'.");
     }
 
     // ── Collision ────────────────────────────────────────────────────────────
@@ -177,6 +222,9 @@ public class Projectile : NetworkBehaviour
             (other.gameObject == _source || other.transform.IsChildOf(_source.transform)))
             return;
 
+        // Skip the enemy this split ball spawned inside — cleared once we exit its collider.
+        if (_spawnIgnoreCollider != null && other == _spawnIgnoreCollider) return;
+
         _hasHit = true;
 
         // Deal damage only when the hit object carries the expected target tag.
@@ -190,11 +238,24 @@ public class Projectile : NetworkBehaviour
                     source:             _source,
                     hitPoint:           hitPoint,
                     hitDirection:       _direction,
-                    elementApplication: _elementApplication
+                    elementApplication: _elementApplication,
+                    isCritical:         _isCritical
                 );
                 damageable.TakeDamage(damageInfo);
                 Debug.Log($"[Projectile] Hit '{other.gameObject.name}' for {_damage} damage " +
-                          $"(element:{_elementApplication.Element}).");
+                          $"(element:{_elementApplication.Element}, crit:{_isCritical}).");
+
+                // Life steal — heal the source player on the server (no RPC needed, Health is server-authoritative).
+                if (_hasLifeSteal && _source != null)
+                {
+                    var sourceHealth = _source.GetComponent<Health>();
+                    if (sourceHealth != null)
+                    {
+                        int healAmount = Mathf.Max(1, Mathf.RoundToInt(sourceHealth.MaxHealth * _lifeStealFraction));
+                        sourceHealth.Heal(healAmount);
+                        Debug.Log($"[Projectile] Life steal — healed '{_source.name}' for {healAmount} HP.");
+                    }
+                }
             }
             else
             {
@@ -202,6 +263,11 @@ public class Projectile : NetworkBehaviour
                 Debug.LogWarning($"[Projectile] Hit '{other.gameObject.name}' (tag:'{_targetTag}') " +
                                  $"but it has no IDamageable component.");
             }
+
+            // Shotgun upgrade: spawn 3 split projectiles on enemy hit (server only).
+            // Split projectiles never split again — ConfigureSplit is intentionally not called on them.
+            if (_splitOnHit && _splitAttackDef != null)
+                SpawnSplitProjectiles(other);
         }
         else
         {
@@ -212,7 +278,77 @@ public class Projectile : NetworkBehaviour
         DestroyProjectile();
     }
 
+    private void OnTriggerExit(Collider other)
+    {
+        // Once the split ball physically leaves the source enemy, allow re-hits (e.g. after a bounce).
+        if (other == _spawnIgnoreCollider)
+            _spawnIgnoreCollider = null;
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    // Spawns 3 split projectiles at this projectile's position:
+    //   - one continuing in the original direction
+    //   - one rotated +_splitAngle degrees around the Y axis
+    //   - one rotated -_splitAngle degrees around the Y axis
+    // Server-only — called from OnTriggerEnter (which is already guarded by !IsServer return).
+    private void SpawnSplitProjectiles(Collider hitCollider)
+    {
+        Vector3[] splitDirs =
+        {
+            _direction,
+            Quaternion.AngleAxis( _splitAngle, Vector3.up) * _direction,
+            Quaternion.AngleAxis(-_splitAngle, Vector3.up) * _direction,
+        };
+
+        // Resolve the source as a NetworkObjectReference for InitializeClientRpc.
+        NetworkObjectReference sourceRef = default;
+        if (_source != null && _source.TryGetComponent<NetworkObject>(out var srcNet))
+            sourceRef = new NetworkObjectReference(srcNet);
+
+        Debug.Log($"[Projectile] Shotgun split — spawning {splitDirs.Length} projectiles at ±{_splitAngle}°.");
+
+        foreach (var dir in splitDirs)
+        {
+            var splitProjectile = Object.Instantiate(
+                _splitAttackDef.ProjectilePrefab,
+                transform.position,
+                Quaternion.LookRotation(dir)
+            );
+
+            // Prevent the split ball from immediately re-hitting the enemy it was born inside.
+            splitProjectile.SetSpawnIgnoreCollider(hitCollider);
+
+            if (_isNetworked)
+            {
+                // Networked: spawn through NGO and broadcast trajectory to all clients.
+                splitProjectile.NetworkObject.Spawn();
+                splitProjectile.InitializeClientRpc(
+                    damage:          _damage,
+                    sourceRef:       sourceRef,
+                    direction:       dir,
+                    speed:           _splitAttackDef.ProjectileSpeed,
+                    elementType:     _splitAttackDef.ElementType,
+                    elementStrength: _splitAttackDef.ElementStrength,
+                    targetTag:       _splitAttackDef.ProjectileTargetTag,
+                    isCritical:      _isCritical   // inherit crit from parent
+                );
+            }
+            else
+            {
+                // Standalone / offline: initialize locally.
+                splitProjectile.Initialize(
+                    damage:             _damage,
+                    source:             _source,
+                    direction:          dir,
+                    speed:              _splitAttackDef.ProjectileSpeed,
+                    elementApplication: _elementApplication,
+                    targetTag:          _splitAttackDef.ProjectileTargetTag,
+                    isCritical:         _isCritical   // inherit crit from parent
+                );
+            }
+        }
+    }
 
     // Server-side lifetime expiry coroutine — despawns on all clients when time runs out.
     private IEnumerator LifetimeExpiry()

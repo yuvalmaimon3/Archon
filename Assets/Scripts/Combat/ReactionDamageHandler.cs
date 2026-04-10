@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -21,6 +22,13 @@ public class ReactionDamageHandler : MonoBehaviour
     [Header("Reaction Damage")]
     [Tooltip("Multiplier applied to the triggering attack's base damage. 2 = double damage.")]
     [SerializeField] private float reactionDamageMultiplier = 2f;
+
+    // ── Global reaction event ─────────────────────────────────────────────────
+
+    // Fired server-side after this entity takes reaction damage.
+    // Args: reaction position, final damage, source player who caused the reaction.
+    // Source is null for non-player reactions (traps, environment).
+    public static event Action<Vector3, int, GameObject> OnAnyReactionDamage;
 
     // ── Private references ───────────────────────────────────────────────────
 
@@ -89,5 +97,9 @@ public class ReactionDamageHandler : MonoBehaviour
         );
 
         _health.TakeDamage(reactionDamageInfo);
+
+        // Broadcast to per-player upgrade effects (e.g. BlastReactionUpgradeEffect).
+        // Source is the player whose attack triggered the reaction — null for non-player sources.
+        OnAnyReactionDamage?.Invoke(transform.position, reactionDamage, result.Source);
     }
 }

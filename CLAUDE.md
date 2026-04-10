@@ -1,20 +1,25 @@
 important the project should be clear as possible so i can be involve in the code and on the whole process
 
+# MCP
+- if the mcp not connect try to reconnect. if the MCP still not workring stop and tell me
+
+
 # Memory
-At the start of every session, read all files in `.claude/memory/` to restore project context (game design, decisions, feedback from past sessions). When on a new machine, also copy those files into `~/.claude/projects/<project-path>/memory/` so the auto-memory system works locally.
+At the start of each session run 'git branch' look at the current brnach name to get context, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
 
 # Code Comments
-- Add comments to help understand the code. add comments for each function class and expalnd what it do, in addition add comments inside function and classes when needed
 - Only explain non-trivial decisions — avoid stating the obvious.
+- make lite comments at the code only for context and at important points
 
 # Unity UI Hierarchy
 - All objects must be accessible via the Unity UI Hierarchy window unless there is a good reason otherwise.
 - as generals make importan variables as SerializeField
+- use Prefabs and Scriptable Objects reuse objects such player, enemies, traps, effects and etc.
 
 # Unity C# Code Standards
 
 Write production-quality Unity C# code as a professional.
-
+a
 ## Design & Architecture
 - Use design patterns when appropriate.
 - Always implement features in a scalable, maintainable, and production-ready way — even if the request is simple.
@@ -32,7 +37,7 @@ Write production-quality Unity C# code as a professional.
 - Add logs in important places so i can get feedbacks when i test the game
 
 ## networking 
-- when you write code pay attention if network tools are requierd such (NetworkBehaviour, NGO ,RCP)
+- For each new component, explicitly decide: does this state need to be seen by all clients? If yes → NetworkBehaviour. If no → MonoBehaviour. Document the reason in a comment.
 
 ## Performance
 - Avoid unnecessary allocations and expensive operations in Update loops.
@@ -46,6 +51,10 @@ Write production-quality Unity C# code as a professional.
 
 ## Output
 - Output clean, concise, and efficient code suitable for real game development.
+
+## Game Design Decisions
+- Never make in-game design decisions (which upgrades exist, their values, game balance, content) without asking first. Structural/technical decisions (canvas hierarchy, component wiring, code architecture) are fine to decide independently.
+- Never create gameplay effects, VFX, audio, or content assets unless explicitly asked.
 
 
 ## git

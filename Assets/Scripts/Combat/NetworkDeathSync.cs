@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -39,6 +40,10 @@ public class NetworkDeathSync : NetworkBehaviour
     // True when NetworkHealthSync is handling health replication on the same object.
     // When true, this component only handles death sync and skips health sync entirely.
     private bool _healthSyncedExternally;
+
+    // Fires on all machines when this enemy takes damage, passing the damage amount.
+    // Subscribe here for damage number VFX.
+    public event Action<int> OnDamageDealt;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -108,6 +113,9 @@ public class NetworkDeathSync : NetworkBehaviour
     /// </summary>
     private void OnServerHealthChanged(int currentHealth, int maxHealth)
     {
+        int delta = _syncedHealth.Value - currentHealth;
+        if (delta > 0) OnDamageDealt?.Invoke(delta);
+
         _syncedHealth.Value = currentHealth;
     }
 
@@ -147,6 +155,9 @@ public class NetworkDeathSync : NetworkBehaviour
     /// </summary>
     private void OnClientHealthSynced(int previousValue, int newValue)
     {
+        int delta = previousValue - newValue;
+        if (delta > 0) OnDamageDealt?.Invoke(delta);
+
         _health.ForceSync(newValue);
         Debug.Log($"[NetworkDeathSync] '{name}' health synced on client: {previousValue} → {newValue}.");
     }

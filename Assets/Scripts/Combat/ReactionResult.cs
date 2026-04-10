@@ -1,9 +1,11 @@
+using UnityEngine;
+
 /// <summary>
 /// Immutable result returned by ReactionResolver for a single element interaction.
 /// Carries both the reaction identity and the post-reaction elemental state instructions.
 ///
-/// BaseDamage is attached by ElementStatusController (not the resolver) because
-/// damage context comes from Health, not from element pair logic.
+/// BaseDamage and Source are attached by ElementStatusController (not the resolver) because
+/// damage/attribution context comes from Health, not from element pair logic.
 /// </summary>
 public readonly struct ReactionResult
 {
@@ -36,10 +38,15 @@ public readonly struct ReactionResult
     /// </summary>
     public readonly int BaseDamage;
 
+    // The player who triggered this reaction (from ElementApplication.Source).
+    // Used by per-player upgrade effects (e.g. BlastReaction) to only fire for
+    // reactions caused by their owner's attacks.
+    public readonly GameObject Source;
+
     public ReactionResult(bool hasReaction, ReactionType reactionType,
                           ReactionOutcomeType outcomeType,
                           ElementType resultElement, float resultStrength,
-                          int baseDamage = 0)
+                          int baseDamage = 0, GameObject source = null)
     {
         HasReaction    = hasReaction;
         ReactionType   = reactionType;
@@ -47,15 +54,20 @@ public readonly struct ReactionResult
         ResultElement  = resultElement;
         ResultStrength = resultStrength;
         BaseDamage     = baseDamage;
+        Source         = source;
     }
 
     /// <summary>
-    /// Returns a copy of this result with BaseDamage set.
-    /// Used by ElementStatusController to attach the triggering attack's damage
-    /// without coupling ReactionResolver to the damage system.
+    /// Returns a copy with BaseDamage set.
+    /// Used by ElementStatusController to attach the triggering attack's damage.
     /// </summary>
     public ReactionResult WithBaseDamage(int baseDamage) => new ReactionResult(
-        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, baseDamage
+        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, baseDamage, Source
+    );
+
+    // Returns a copy with Source set (the player whose attack triggered the reaction).
+    public ReactionResult WithSource(GameObject source) => new ReactionResult(
+        HasReaction, ReactionType, OutcomeType, ResultElement, ResultStrength, BaseDamage, source
     );
 
     /// <summary>
