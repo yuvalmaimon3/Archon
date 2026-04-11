@@ -11,6 +11,14 @@ public class BootstrapLoader : MonoBehaviour
 
     private void Start()
     {
+        // Skip if already in a game scene — Bootstrap was loaded additively by EditorAutoBootstrap.
+        // In a normal build Bootstrap is always scene 0 and loads first, so this never triggers there.
+        if (SceneManager.GetActiveScene().name != "Bootstrap")
+        {
+            Debug.Log($"[BootstrapLoader] Already in '{SceneManager.GetActiveScene().name}' — skipping load.");
+            return;
+        }
+
         Debug.Log($"[BootstrapLoader] Loading '{gameScene}'...");
         SceneManager.LoadScene(gameScene);
     }
