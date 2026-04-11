@@ -113,7 +113,10 @@ public class Projectile : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        // Only the server owns the lifetime timer so there is a single authority.
+        // Mark networked immediately on all machines so the OnTriggerEnter client-guard
+        // is active from the moment the object appears — before InitializeClientRpc arrives.
+        _isNetworked = true;
+
         if (IsServer)
             _lifetimeCoroutine = StartCoroutine(LifetimeExpiry());
     }
@@ -131,7 +134,7 @@ public class Projectile : NetworkBehaviour
                                      ElementType elementType, float elementStrength,
                                      string targetTag, bool isCritical = false)
     {
-        _isNetworked          = true;
+        _isNetworked          = true; // also set in OnNetworkSpawn, but keep here for safety
         _source               = sourceRef.TryGet(out var netObj) ? netObj.gameObject : null;
         _damage               = damage;
         _direction            = direction.normalized;
@@ -142,11 +145,13 @@ public class Projectile : NetworkBehaviour
         _displayElementType   = elementType;
         _isInitialized        = true;
 
-        // Drive movement via physics velocity — non-kinematic, gravity off.
+        // Force non-kinematic — NGO 2.x may set kinematic on non-owner clients.
+        _rb.isKinematic    = false;
         _rb.linearVelocity = _direction * _speed;
 
-        Debug.Log($"[Projectile] Initialized (networked) — damage:{damage}, speed:{speed}, " +
-                  $"element:{elementType}, lifetime:{lifetime}s, crit:{isCritical}");
+        Debug.Log($"[Projectile] InitializeClientRpc — IsServer:{IsServer} IsClient:{IsClient} " +
+                  $"vel:{_rb.linearVelocity} damage:{damage} speed:{speed} " +
+                  $"element:{elementType} crit:{isCritical}");
     }
 
     // ── Standalone initialization ─────────────────────────────────────────────

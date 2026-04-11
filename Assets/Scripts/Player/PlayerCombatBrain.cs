@@ -178,9 +178,12 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         // Server instantiates the projectile and spawns it as a NetworkObject.
         // NGO replicates the spawn to all connected clients automatically.
+        // +1 Y offset: spawns at chest height so the ball clears the floor/player collider
+        // immediately — without this the sphere sits at ground level for 1-3 frames on clients
+        // before InitializeClientRpc arrives, making it invisible inside the player model.
         Projectile projectile = Instantiate(
             def.ProjectilePrefab,
-            transform.position,
+            transform.position + Vector3.up * 1f,
             Quaternion.LookRotation(direction)
         );
 
