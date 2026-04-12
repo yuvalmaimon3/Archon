@@ -59,6 +59,13 @@ public class AttackDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float elementStrength = 1f;
 
+    [Header("Presentation")]
+    [Tooltip("Animator trigger name played when this attack fires. Leave blank for none.")]
+    [SerializeField] private string attackAnimationTrigger;
+
+    [Tooltip("Sound played when this attack fires.")]
+    [SerializeField] private AudioClip attackSound;
+
     // ── Read-only properties ─────────────────────────────────────────────────
 
     /// <summary>Unique identifier for this attack.</summary>
@@ -96,4 +103,10 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Strength of the elemental application.</summary>
     public float ElementStrength => elementStrength;
+
+    /// <summary>Animator trigger name played when this attack fires. Empty string means none.</summary>
+    public string AttackAnimationTrigger => attackAnimationTrigger;
+
+    /// <summary>Sound played when this attack fires.</summary>
+    public AudioClip AttackSound => attackSound;
 }

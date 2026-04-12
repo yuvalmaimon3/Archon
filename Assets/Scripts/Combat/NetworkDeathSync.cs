@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -41,9 +40,9 @@ public class NetworkDeathSync : NetworkBehaviour
     // When true, this component only handles death sync and skips health sync entirely.
     private bool _healthSyncedExternally;
 
-    // Fires on all machines when this enemy takes damage, passing the damage amount.
-    // Subscribe here for damage number VFX.
-    public event Action<int> OnDamageDealt;
+    // Fires on all machines when this enemy takes damage.
+    // Args: (damageAmount, isCritical) — subscribe for damage number VFX.
+    public event Action<int, bool> OnDamageDealt;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -74,6 +73,9 @@ public class NetworkDeathSync : NetworkBehaviour
                 _health.OnDamaged += OnServerHealthChanged;
             }
 
+            // Broadcast damage events (amount + crit) to all clients for damage numbers
+            _health.OnDamageTaken += OnServerDamageTaken;
+
             _health.OnDeath += OnServerDeath;
         }
         else if (!_healthSyncedExternally)
@@ -97,6 +99,7 @@ public class NetworkDeathSync : NetworkBehaviour
             if (!_healthSyncedExternally)
                 _health.OnDamaged -= OnServerHealthChanged;
 
+            _health.OnDamageTaken -= OnServerDamageTaken;
             _health.OnDeath -= OnServerDeath;
         }
         else if (!_healthSyncedExternally)
@@ -113,10 +116,13 @@ public class NetworkDeathSync : NetworkBehaviour
     /// </summary>
     private void OnServerHealthChanged(int currentHealth, int maxHealth)
     {
-        int delta = _syncedHealth.Value - currentHealth;
-        if (delta > 0) OnDamageDealt?.Invoke(delta);
-
         _syncedHealth.Value = currentHealth;
+    }
+
+    // Fires on server when Health applies damage. Broadcasts to all clients via RPC.
+    private void OnServerDamageTaken(int amount, bool isCritical)
+    {
+        BroadcastDamageClientRpc(amount, isCritical);
     }
 
     /// <summary>
@@ -130,6 +136,13 @@ public class NetworkDeathSync : NetworkBehaviour
     }
 
     // ── ClientRpc ────────────────────────────────────────────────────────────
+
+    // Broadcasts damage amount and crit flag to all clients for damage number display.
+    [ClientRpc]
+    private void BroadcastDamageClientRpc(int amount, bool isCritical)
+    {
+        OnDamageDealt?.Invoke(amount, isCritical);
+    }
 
     /// <summary>
     /// Runs on all clients (and host) when the server broadcasts death.
@@ -155,9 +168,6 @@ public class NetworkDeathSync : NetworkBehaviour
     /// </summary>
     private void OnClientHealthSynced(int previousValue, int newValue)
     {
-        int delta = previousValue - newValue;
-        if (delta > 0) OnDamageDealt?.Invoke(delta);
-
         _health.ForceSync(newValue);
         Debug.Log($"[NetworkDeathSync] '{name}' health synced on client: {previousValue} → {newValue}.");
     }

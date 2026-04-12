@@ -117,7 +117,19 @@ public class PlayerCombatBrain : NetworkBehaviour
                 return true;
 
             case AttackType.Melee:
-                MeleeAttackExecutor.Execute(transform, def, attackController.EffectiveDamage);
+                // Roll crit on the owner — bake multiplier into damage so reactions inherit it.
+                if (_critHandler == null)
+                    _critHandler = GetComponent<PlayerCritHandler>();
+
+                bool meleeCrit    = _critHandler != null && _critHandler.RollCrit();
+                int  meleeDamage  = attackController.EffectiveDamage;
+                if (meleeCrit)
+                {
+                    meleeDamage = Mathf.RoundToInt(meleeDamage * _critHandler.CritMultiplier);
+                    Debug.Log($"[PlayerCombatBrain] MELEE CRITICAL! {attackController.EffectiveDamage} → {meleeDamage} damage.");
+                }
+
+                MeleeAttackExecutor.Execute(transform, def, meleeDamage, meleeCrit);
                 return true;
 
             case AttackType.Contact:
@@ -166,9 +178,12 @@ public class PlayerCombatBrain : NetworkBehaviour
 
         // Server instantiates the projectile and spawns it as a NetworkObject.
         // NGO replicates the spawn to all connected clients automatically.
+        // +1 Y offset: spawns at chest height so the ball clears the floor/player collider
+        // immediately — without this the sphere sits at ground level for 1-3 frames on clients
+        // before InitializeClientRpc arrives, making it invisible inside the player model.
         Projectile projectile = Instantiate(
             def.ProjectilePrefab,
-            transform.position,
+            transform.position + Vector3.up * 1f,
             Quaternion.LookRotation(direction)
         );
 

@@ -40,6 +40,12 @@ public class Health : MonoBehaviour, IDamageable
     public event Action<int, int> OnDamaged;
 
     /// <summary>
+    /// Fired after damage is applied. Passes (damageAmount, isCritical).
+    /// Used by NetworkDeathSync to broadcast damage numbers with crit info to all clients.
+    /// </summary>
+    public event Action<int, bool> OnDamageTaken;
+
+    /// <summary>
     /// Fired once when health reaches zero.
     /// Subscribe here for death VFX, game-over logic, loot drops, etc.
     /// Passes the final DamageInfo that caused the death.
@@ -104,6 +110,9 @@ public class Health : MonoBehaviour, IDamageable
 
             // Notify subscribers (health bar, hit flash, audio)
             OnDamaged?.Invoke(CurrentHealth, maxHealth);
+
+            // Notify damage display systems (amount + crit flag for red numbers)
+            OnDamageTaken?.Invoke(damageInfo.Amount, damageInfo.IsCritical);
         }
         else
         {
@@ -114,9 +123,10 @@ public class Health : MonoBehaviour, IDamageable
         }
 
         // Forward element to ElementStatusController.
-        // Pass baseDamage so the ReactionResult carries it for damage calculation.
+        // Pass baseDamage and isCritical so the ReactionResult carries them for damage + display.
         if (_elementStatus != null && hasElement)
-            _elementStatus.ApplyElement(damageInfo.ElementApplication, damageInfo.Amount);
+            _elementStatus.ApplyElement(damageInfo.ElementApplication, damageInfo.Amount,
+                                        damageInfo.IsCritical);
 
         // Guard with !IsDead — ReactionDamageHandler's TakeDamage (called synchronously
         // inside ApplyElement above) may have already triggered death via Die().

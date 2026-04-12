@@ -26,6 +26,12 @@ public class DamageNumberSpawner : MonoBehaviour
         _deathSync = GetComponent<NetworkDeathSync>();
     }
 
+    [Tooltip("Text color for critical hits.")]
+    [SerializeField] private Color _critColor = Color.red;
+
+    [Tooltip("Font size multiplier for critical hit numbers.")]
+    [SerializeField] private float _critFontSizeMultiplier = 1.4f;
+
     private void OnEnable()
     {
         if (_deathSync != null)
@@ -38,14 +44,14 @@ public class DamageNumberSpawner : MonoBehaviour
             _deathSync.OnDamageDealt -= SpawnNumber;
     }
 
-    private void SpawnNumber(int amount)
+    private void SpawnNumber(int amount, bool isCritical)
     {
         var go  = new GameObject("DmgNum");
         go.transform.position = transform.position + Vector3.up * _spawnHeight;
 
         var tmp        = go.AddComponent<TextMeshPro>();
-        tmp.fontSize   = _fontSize;
-        tmp.color      = Color.white;
+        tmp.fontSize   = isCritical ? _fontSize * _critFontSizeMultiplier : _fontSize;
+        tmp.color      = isCritical ? _critColor : Color.white;
         tmp.fontStyle  = FontStyles.Bold;
         tmp.alignment  = TextAlignmentOptions.Center;
 

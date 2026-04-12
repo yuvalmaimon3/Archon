@@ -23,7 +23,10 @@ public static class MeleeAttackExecutor
     // damageOverride: when >= 0, replaces attackDefinition.Damage — used by EnemyCombatBrain
     // to apply level-scaled damage (AttackController.EffectiveDamage) without mutating
     // the shared AttackDefinition ScriptableObject asset.
-    public static void Execute(Transform origin, AttackDefinition attackDefinition, int damageOverride = -1)
+    // isCritical: true if the crit roll succeeded — baked into damageOverride already,
+    // this flag is for display (red damage numbers).
+    public static void Execute(Transform origin, AttackDefinition attackDefinition, int damageOverride = -1,
+                               bool isCritical = false)
     {
         // ── Validation ───────────────────────────────────────────────────────
 
@@ -109,7 +112,8 @@ public static class MeleeAttackExecutor
                 source:             origin.gameObject,
                 hitPoint:           hitPoint,
                 hitDirection:       hitDir,
-                elementApplication: elementApplication
+                elementApplication: elementApplication,
+                isCritical:         isCritical
             );
 
             target.TakeDamage(damageInfo);

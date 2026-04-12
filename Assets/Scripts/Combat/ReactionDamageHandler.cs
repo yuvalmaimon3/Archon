@@ -87,13 +87,15 @@ public class ReactionDamageHandler : MonoBehaviour
                   $"{result.ReactionType} reaction! " +
                   $"Base damage: {result.BaseDamage} × {reactionDamageMultiplier} = {reactionDamage}");
 
-        // Build a plain DamageInfo with no element — prevents recursive reactions
+        // Build a plain DamageInfo with no element — prevents recursive reactions.
+        // Carry isCritical from the triggering attack so reaction damage numbers show red.
         var reactionDamageInfo = new DamageInfo(
             amount:             reactionDamage,
             source:             null,                // reaction is environmental, no attacker
             hitPoint:           transform.position,
             hitDirection:       Vector3.zero,
-            elementApplication: default              // no element = no reaction loop
+            elementApplication: default,             // no element = no reaction loop
+            isCritical:         result.IsCritical
         );
 
         _health.TakeDamage(reactionDamageInfo);

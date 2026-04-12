@@ -67,7 +67,8 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     /// can compute reaction damage without needing to reach back into the attack.
     /// Pass 0 for pure element applications that carry no damage context.
     /// </summary>
-    public void ApplyElement(ElementApplication application, int baseDamage = 0)
+    public void ApplyElement(ElementApplication application, int baseDamage = 0,
+                             bool isCritical = false)
     {
         ReactionResult result = ReactionResolver.Resolve(
             CurrentElement, CurrentStrength,
@@ -78,9 +79,10 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         {
             LastReaction = result.ReactionType;
 
-            // Attach the triggering attack's damage and source player
+            // Attach the triggering attack's damage, source player, and crit flag
             result = result.WithBaseDamage(baseDamage);
             result = result.WithSource(application.Source);
+            result = result.WithIsCritical(isCritical);
 
             Debug.Log($"[ElementStatusController] {gameObject.name} — " +
                       $"reaction: {result.ReactionType} " +

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // Holds the computed stats for a specific enemy level.
@@ -33,14 +34,32 @@ public class EnemyData : ScriptableObject
     [Tooltip("Display name of this enemy type (used in logs and future UI).")]
     [SerializeField] private string enemyName = "Enemy";
 
+    [Tooltip("Combat archetype of this enemy. Used by spawners and UI grouping.")]
+    [SerializeField] private EnemyRole role = EnemyRole.Melee;
+
+    [Tooltip("Bestiary description / flavor text shown in UI.")]
+    [TextArea(2, 5)]
+    [SerializeField] private string description;
+
     [Header("Stats")]
     [Tooltip("Maximum hit points for this enemy type at level 1.")]
     [Min(1)]
     [SerializeField] private int maxHealth = 50;
 
+    [Tooltip("Flat physical damage reduction applied before HP is lost.")]
+    [Min(0)]
+    [SerializeField] private int defense = 0;
+
+    [Tooltip("Flat magical damage reduction applied before HP is lost.")]
+    [Min(0)]
+    [SerializeField] private int magicDefense = 0;
+
     [Tooltip("Movement speed in units per second at level 1.")]
     [Min(0f)]
     [SerializeField] private float moveSpeed = 3f;
+
+    [Tooltip("How this enemy physically moves. Drives movement component / animation choice.")]
+    [SerializeField] private EnemyMovementStyle movementStyle = EnemyMovementStyle.Walk;
 
     [Tooltip("Distance at which the enemy stops chasing and starts attacking. " +
              "Should match (or be slightly less than) the AttackDefinition range.")]
@@ -51,6 +70,20 @@ public class EnemyData : ScriptableObject
     [Tooltip("The attack definition used by this enemy type. " +
              "Assigned to the AttackController at runtime by EnemyInitializer.")]
     [SerializeField] private AttackDefinition attackDefinition;
+
+    [Tooltip("High-level combat behavior. Consumed by the enemy's combat brain " +
+             "to pick between engagement patterns.")]
+    [SerializeField] private EnemyBehavior behavior = EnemyBehavior.Aggressive;
+
+    [Tooltip("Optional traits that modify this enemy. Add EnemyTraitSO assets here.")]
+    [SerializeField] private List<EnemyTraitSO> specialTraits = new List<EnemyTraitSO>();
+
+    [Header("Presentation")]
+    [Tooltip("Animator trigger name played when this enemy dies. Leave blank for none.")]
+    [SerializeField] private string deathAnimationTrigger;
+
+    [Tooltip("Sound played when this enemy dies.")]
+    [SerializeField] private AudioClip deathSound;
 
     [Header("Level Scaling")]
     [Tooltip("HP growth per level as a fraction of base HP. " +
@@ -78,11 +111,26 @@ public class EnemyData : ScriptableObject
     // Display name of this enemy type.
     public string EnemyName => enemyName;
 
+    // Combat archetype of this enemy type.
+    public EnemyRole Role => role;
+
+    // Bestiary description / flavor text.
+    public string Description => description;
+
     // Maximum hit points at level 1.
     public int MaxHealth => maxHealth;
 
+    // Flat physical damage reduction.
+    public int Defense => defense;
+
+    // Flat magical damage reduction.
+    public int MagicDefense => magicDefense;
+
     // Movement speed in units per second at level 1.
     public float MoveSpeed => moveSpeed;
+
+    // How this enemy moves (walk / fly / hop / ...).
+    public EnemyMovementStyle MovementStyle => movementStyle;
 
     // Distance at which the enemy stops moving and begins attacking.
     // Used by EnemyMovement to determine when to halt the chase.
@@ -90,6 +138,18 @@ public class EnemyData : ScriptableObject
 
     // Attack definition assigned to the enemy's AttackController on spawn.
     public AttackDefinition AttackDefinition => attackDefinition;
+
+    // High-level combat behavior (aggressive / defensive / ...).
+    public EnemyBehavior Behavior => behavior;
+
+    // Special traits attached to this enemy type. Read-only view; never null.
+    public IReadOnlyList<EnemyTraitSO> SpecialTraits => specialTraits;
+
+    // Animator trigger name played on death. Empty string means none.
+    public string DeathAnimationTrigger => deathAnimationTrigger;
+
+    // Sound played on death.
+    public AudioClip DeathSound => deathSound;
 
     // ── Level scaling ────────────────────────────────────────────────────────
 
