@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.AI;
 
 // Handles periodic minion summoning for the Summoner enemy.
 //
@@ -35,6 +36,10 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
     [Tooltip("Radius around the summoner in which minions are scattered on spawn.")]
     [Min(0f)]
     [SerializeField] private float spawnRadius = 2f;
+
+    [Tooltip("Max search radius passed to NavMesh.SamplePosition when finding a valid spawn point.")]
+    [Min(0.5f)]
+    [SerializeField] private float navMeshSearchRadius = 2f;
 
     [Tooltip("Maximum number of concurrently active summoned minions. " +
              "Summon waves are skipped when this cap is reached.")]
@@ -127,13 +132,17 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
         }
     }
 
-    // Instantiates and NGO-spawns a single minion at a random position near the summoner.
+    // Instantiates and NGO-spawns a single minion at a valid NavMesh position near the summoner.
     // Applies level before spawning so OnNetworkSpawn on the minion sees the right level.
     private void SpawnMinion(int index)
     {
-        // Scatter minions in a ring around the summoner, staying on the ground plane.
-        Vector2 circle   = Random.insideUnitCircle.normalized * spawnRadius;
-        Vector3 spawnPos = transform.position + new Vector3(circle.x, 0f, circle.y);
+        // Find a valid NavMesh point — retries random scatter positions, falls back to origin.
+        if (!TryFindNavMeshPosition(out Vector3 spawnPos))
+        {
+            Debug.LogWarning($"[MinionSummoner] '{name}' — minion {index} skipped: " +
+                             $"no valid NavMesh position found near {transform.position}.");
+            return;
+        }
 
         GameObject minion = Instantiate(minionPrefab, spawnPos, Quaternion.identity);
 
@@ -160,6 +169,35 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
         _activeMinions.Add(netObj);
 
         Debug.Log($"[MinionSummoner] '{name}' — minion {index} spawned at {spawnPos}.");
+    }
+
+    // Tries random scatter positions within spawnRadius, snapping each to the NavMesh.
+    // Falls back to sampling the summoner's own position before giving up.
+    private bool TryFindNavMeshPosition(out Vector3 result)
+    {
+        const int maxAttempts = 10;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            Vector2 circle    = Random.insideUnitCircle * spawnRadius;
+            Vector3 candidate = transform.position + new Vector3(circle.x, 0f, circle.y);
+
+            if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, navMeshSearchRadius, NavMesh.AllAreas))
+            {
+                result = hit.position;
+                return true;
+            }
+        }
+
+        // Last resort: sample at the summoner's own position
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit fallback, navMeshSearchRadius, NavMesh.AllAreas))
+        {
+            result = fallback.position;
+            return true;
+        }
+
+        result = Vector3.zero;
+        return false;
     }
 
     // Removes null (destroyed) or despawned NetworkObject entries from the tracking list.

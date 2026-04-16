@@ -51,6 +51,26 @@ public class AttackDefinition : ScriptableObject
     [Min(0.05f)]
     [SerializeField] private float contactTickInterval = 0.5f;
 
+    [Header("Summoning")]
+    [Tooltip("Enemy prefab to summon. Must have EnemyInitializer. Must have NetworkObject for multiplayer.")]
+    [SerializeField] private GameObject summoningPrefab;
+
+    [Tooltip("How many enemies to summon per attack.")]
+    [Min(1)]
+    [SerializeField] private int summoningCount = 1;
+
+    [Tooltip("Radius around the summoner in which spawns are scattered.")]
+    [Min(0f)]
+    [SerializeField] private float summoningSpreadRadius = 3f;
+
+    [Tooltip("Level applied to each summoned enemy via EnemyInitializer.")]
+    [Min(1)]
+    [SerializeField] private int summoningMinionLevel = 1;
+
+    [Tooltip("Max search radius passed to NavMesh.SamplePosition to find a valid spawn point near the candidate.")]
+    [Min(0.5f)]
+    [SerializeField] private float summoningNavMeshSearchRadius = 2f;
+
     [Header("CallDown")]
     [Tooltip("Prefab spawned at each strike location. Required when AttackType is CallDown.")]
     [SerializeField] private CallDownZone callDownZonePrefab;
@@ -117,6 +137,21 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Radius of the overlap sphere used to detect melee targets.</summary>
     public float MeleeRadius => meleeRadius;
+
+    /// <summary>Enemy prefab spawned on each Summoning attack.</summary>
+    public GameObject SummoningPrefab => summoningPrefab;
+
+    /// <summary>How many enemies to summon per attack.</summary>
+    public int SummoningCount => summoningCount;
+
+    /// <summary>Scatter radius around the summoner for spawn positions.</summary>
+    public float SummoningSpreadRadius => summoningSpreadRadius;
+
+    /// <summary>Level applied to each summoned enemy via EnemyInitializer.</summary>
+    public int SummoningMinionLevel => summoningMinionLevel;
+
+    /// <summary>Max search radius for NavMesh.SamplePosition when finding a valid spawn point.</summary>
+    public float SummoningNavMeshSearchRadius => summoningNavMeshSearchRadius;
 
     /// <summary>Prefab spawned at each strike location for CallDown attacks.</summary>
     public CallDownZone CallDownZonePrefab => callDownZonePrefab;

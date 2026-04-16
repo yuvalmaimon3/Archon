@@ -159,6 +159,10 @@ public class EnemyCombatBrain : MonoBehaviour, IDeathHandler
                 int zonesSpawned = CallDownAttackExecutor.Execute(transform, target.position, def, scaledDamage);
                 return zonesSpawned > 0;
 
+            case AttackType.Summoning:
+                int summoned = SummoningAttackExecutor.Execute(transform, def);
+                return summoned > 0;
+
             case AttackType.Contact:
                 // Contact damage is driven by ContactDamageDealer, not the brain — nothing to do.
                 return false;
