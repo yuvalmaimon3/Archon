@@ -51,6 +51,29 @@ public class AttackDefinition : ScriptableObject
     [Min(0.05f)]
     [SerializeField] private float contactTickInterval = 0.5f;
 
+    [Header("CallDown")]
+    [Tooltip("Prefab spawned at each strike location. Required when AttackType is CallDown.")]
+    [SerializeField] private CallDownZone callDownZonePrefab;
+
+    [Tooltip("Seconds the warning indicator is shown before the strike lands.")]
+    [Min(0.1f)]
+    [SerializeField] private float callDownWarnDuration = 1.5f;
+
+    [Tooltip("Radius of the AOE damage sphere when the strike lands.")]
+    [Min(0f)]
+    [SerializeField] private float callDownAoeRadius = 2f;
+
+    [Tooltip("Number of strike zones spawned per attack. 1 = single hit; >1 = first at targetPosition + rest scattered.")]
+    [Min(1)]
+    [SerializeField] private int callDownTargetCount = 1;
+
+    [Tooltip("How far additional zones scatter from the first strike position when TargetCount > 1.")]
+    [Min(0f)]
+    [SerializeField] private float callDownSpreadRadius = 2f;
+
+    [Tooltip("Tag of GameObjects the strike damages. 'Player' for enemy attacks; 'Enemy' for player attacks.")]
+    [SerializeField] private string callDownTargetTag;
+
     [Header("Element")]
     [Tooltip("Element applied to the target on hit. None = non-elemental attack.")]
     [SerializeField] private ElementType elementType = ElementType.None;
@@ -94,6 +117,24 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Radius of the overlap sphere used to detect melee targets.</summary>
     public float MeleeRadius => meleeRadius;
+
+    /// <summary>Prefab spawned at each strike location for CallDown attacks.</summary>
+    public CallDownZone CallDownZonePrefab => callDownZonePrefab;
+
+    /// <summary>Seconds the warning indicator is shown before the strike lands.</summary>
+    public float CallDownWarnDuration => callDownWarnDuration;
+
+    /// <summary>Radius of the AOE damage sphere when the strike lands.</summary>
+    public float CallDownAoeRadius => callDownAoeRadius;
+
+    /// <summary>Number of strike zones spawned per attack.</summary>
+    public int CallDownTargetCount => callDownTargetCount;
+
+    /// <summary>Scatter radius for additional zones when TargetCount > 1.</summary>
+    public float CallDownSpreadRadius => callDownSpreadRadius;
+
+    /// <summary>Tag of GameObjects the strike damages.</summary>
+    public string CallDownTargetTag => callDownTargetTag;
 
     /// <summary>Seconds between damage ticks for contact attacks.</summary>
     public float ContactTickInterval => contactTickInterval;
