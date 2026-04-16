@@ -1,10 +1,3 @@
-Summoning is the ability to summoning a new enemies to the field.
-Player or enemy can summoning summoners in any location for example random locations, fix pattern, different number.
-but it can summoning only on the navmesh area.
+Spawns a batch of minions on the NavMesh. CD starts only after the last minion dies. One batch at a time.
 
-prompt
-create a new attack type Summoning.
-Summoning is the ability to summoning a new enemies to the field.
-Player or enemy can summoning summoners in any location for example random locations, fix pattern, different number.
-but it can summoning only on the navmesh area.
-summoning related code already build go over them and make changes if needed 
+Use MinionSummoner component on the enemy prefab. Set minionPrefab, minionsPerWave, summonInterval, spawnRadius, and spawnInFront in the Inspector.
