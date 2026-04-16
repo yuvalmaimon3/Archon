@@ -1,5 +1,5 @@
 **Create an new enemy.  
-name: Teemo
+name: Assassin
 3d animation: none
 Role: Ranged
 Health: 200
@@ -18,7 +18,7 @@ Death sound: none
 Range: medium
 Behavior: 
 Special trait:  
-description: teemo is a simple classics ranged. it move fast and random with high fire rate low dmg.  
+description: assassin is a simple classics ranged. it move fast and random with high fire rate low dmg.  
 - **Keep it simple and easy to implement.**
 - **build the enemy with uniform standard 
 - **pay attention part of the attribute source locate in different classes for example attack speed locate in enemydata.cs as cooldown 

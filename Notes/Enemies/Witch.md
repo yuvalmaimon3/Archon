@@ -18,7 +18,7 @@ Death sound: none
 Range: 3
 Special trait: 
 description: 
-The witch attack from medium range and summoning 3 goblins every 10 seconds in his front in a random location close to her.
+The witch attack from medium range and summoning 3 goblins every 5 seconds in his front in a random location close to her.
 - **Keep it simple and easy to implement.**
 - **build the enemy with uniform standard 
 - **pay attention part of the attribute source locate in different classes for example attack speed locate in enemydata.cs as cooldown 

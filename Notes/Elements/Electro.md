@@ -1,1 +1,1 @@
-When enemy is effect by electro. it get sock each 4 second. sock mean it stop move for 1 second.
+When enemy is effect by electro. it get stuck each 4 second. stuck mean it stop move for 1 second.
