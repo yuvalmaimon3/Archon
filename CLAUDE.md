@@ -2,7 +2,7 @@ important the project should be clear as possible so i can be involve in the cod
 
 # MCP
 - if the mcp not connect try to reconnect. if the MCP still not workring stop and tell me
-
+- Use Unity skills only as needed to verify unfamiliar or complex tool schemas, then prefer direct MCP tool calls without re-reading skills or using bash wrappers when the schema is already clear.
 
 # Memory
 At the start of each session run 'git branch' look at the current brnach name to get context, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.

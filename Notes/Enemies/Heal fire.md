@@ -1,0 +1,1 @@
+hellfire is a calldown attack that make AOE around the enemy in close range.

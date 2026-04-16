@@ -1,0 +1,1 @@
+When enemy is effect by electro. it get sock each 4 second. sock mean it stop move for 1 second.
