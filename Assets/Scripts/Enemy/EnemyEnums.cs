@@ -8,6 +8,7 @@ public enum EnemyRole
     Ranged,
     Tank,
     Caster,
+    Summoner,
     Support,
     Boss
 }

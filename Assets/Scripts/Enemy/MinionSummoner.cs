@@ -41,6 +41,9 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
     [Min(0.5f)]
     [SerializeField] private float navMeshSearchRadius = 2f;
 
+    [Tooltip("When enabled, minions spawn within a 180° arc in front of the summoner instead of all around.")]
+    [SerializeField] private bool spawnInFront = false;
+
     [Tooltip("Maximum number of concurrently active summoned minions. " +
              "Summon waves are skipped when this cap is reached.")]
     [Min(1)]
@@ -179,8 +182,7 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            Vector2 circle    = Random.insideUnitCircle * spawnRadius;
-            Vector3 candidate = transform.position + new Vector3(circle.x, 0f, circle.y);
+            Vector3 candidate = spawnInFront ? GetFrontArcCandidate() : GetCircleCandidate();
 
             if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, navMeshSearchRadius, NavMesh.AllAreas))
             {
@@ -198,6 +200,22 @@ public class MinionSummoner : NetworkBehaviour, IDeathHandler
 
         result = Vector3.zero;
         return false;
+    }
+
+    // Random point within the full spawn radius circle.
+    private Vector3 GetCircleCandidate()
+    {
+        Vector2 circle = Random.insideUnitCircle * spawnRadius;
+        return transform.position + new Vector3(circle.x, 0f, circle.y);
+    }
+
+    // Random point within a 180° forward arc — used when spawnInFront is true.
+    private Vector3 GetFrontArcCandidate()
+    {
+        float   angle = Random.Range(-90f, 90f);
+        float   dist  = Random.Range(0f, spawnRadius);
+        Vector3 dir   = Quaternion.Euler(0f, angle, 0f) * transform.forward;
+        return transform.position + dir * dist;
     }
 
     // Removes null (destroyed) or despawned NetworkObject entries from the tracking list.
