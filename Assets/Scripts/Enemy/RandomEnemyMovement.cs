@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-// NavMesh-based movement that wanders to random positions continuously.
-// The enemy never chases the player directly — it moves erratically across
-// the field while EnemyCombatBrain handles shooting independently when
-// the player enters attack range.
+// NavMesh-based movement that alternates between wandering and standing still.
+// Cycle: move for moveDuration → stand for standDuration → repeat.
+//
+// Standing = no NavMesh destination. The agent stays enabled so physics
+// forces (knockback, pushback) apply normally in both states.
+// EnemyCombatBrain fires independently regardless of movement state.
 //
 // Networking: NetworkBehaviour via EnemyMovementBase.
 // Server drives the agent; clients receive position via NetworkTransform.
@@ -24,8 +26,21 @@ public class RandomEnemyMovement : EnemyMovementBase
     [Min(0.5f)]
     [SerializeField] private float navMeshSearchRadius = 3f;
 
+    [Header("Move / Stand Cycle")]
+    [Tooltip("Seconds spent moving toward a random waypoint before stopping.")]
+    [Min(0.1f)]
+    [SerializeField] private float moveDuration = 2f;
+
+    [Tooltip("Seconds spent standing still before moving again.")]
+    [Min(0f)]
+    [SerializeField] private float standDuration = 2f;
+
     private NavMeshAgent _agent;
     private Rigidbody    _rb;
+
+    private enum WanderState { Moving, Standing }
+    private WanderState _state;
+    private float       _stateTimer; // counts down; state switches when it hits 0
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
@@ -50,9 +65,9 @@ public class RandomEnemyMovement : EnemyMovementBase
         }
 
         _agent.Warp(transform.position);
-        PickNewWaypoint(); // Start moving immediately
+        EnterMoving();
 
-        Debug.Log($"[RandomEnemyMovement] '{name}' spawned — beginning random wander.");
+        Debug.Log($"[RandomEnemyMovement] '{name}' spawned — cycle: move {moveDuration}s / stand {standDuration}s.");
     }
 
     private void Update()
@@ -61,13 +76,27 @@ public class RandomEnemyMovement : EnemyMovementBase
         if (IsKnockedBack) return;
         if (!_agent.enabled || !_agent.isOnNavMesh) return;
 
-        // Face the direction of travel
-        if (_agent.velocity.sqrMagnitude > 0.01f)
-            FaceTarget(transform.position + _agent.velocity);
+        _stateTimer -= Time.deltaTime;
 
-        // Pick a new waypoint when the current one is reached
-        if (!_agent.pathPending && _agent.remainingDistance <= waypointThreshold)
-            PickNewWaypoint();
+        switch (_state)
+        {
+            case WanderState.Moving:
+                if (_agent.velocity.sqrMagnitude > 0.01f)
+                    FaceTarget(transform.position + _agent.velocity);
+
+                // Pick a new waypoint immediately if the current one is reached mid-phase
+                if (!_agent.pathPending && _agent.remainingDistance <= waypointThreshold)
+                    PickNewWaypoint();
+
+                if (_stateTimer <= 0f)
+                    EnterStanding();
+                break;
+
+            case WanderState.Standing:
+                if (_stateTimer <= 0f)
+                    EnterMoving();
+                break;
+        }
     }
 
     // ── EnemyMovementBase overrides ──────────────────────────────────────────
@@ -75,7 +104,7 @@ public class RandomEnemyMovement : EnemyMovementBase
     protected override void OnInitialized(EnemyData data)
     {
         _agent.speed            = data.MoveSpeed;
-        _agent.stoppingDistance = 0f; // Never stops — always wanders
+        _agent.stoppingDistance = 0f;
     }
 
     public override void SetMoveSpeed(float speed)
@@ -89,6 +118,8 @@ public class RandomEnemyMovement : EnemyMovementBase
         _agent.enabled = false;
     }
 
+    // KnockbackHandler calls these — disabling/re-enabling the agent handles both
+    // Moving and Standing states correctly; the cycle resumes after knockback ends.
     protected override void OnKnockbackStart()
     {
         if (_agent.isOnNavMesh) _agent.ResetPath();
@@ -102,15 +133,32 @@ public class RandomEnemyMovement : EnemyMovementBase
         _rb.linearVelocity = Vector3.zero;
         _agent.enabled     = true;
         _agent.Warp(transform.position);
-        PickNewWaypoint();
+
+        // Resume whichever state was active — timer continues from where it left off
+        if (_state == WanderState.Moving)
+            PickNewWaypoint();
 
         Debug.Log($"[RandomEnemyMovement] '{name}' agent re-enabled after knockback.");
     }
 
-    // ── Wander logic ─────────────────────────────────────────────────────────
+    // ── State transitions ────────────────────────────────────────────────────
 
-    // Samples a random position within wanderRadius and sets it as the destination.
-    // Retries several times; if all fail, stays in place for this tick.
+    private void EnterMoving()
+    {
+        _state      = WanderState.Moving;
+        _stateTimer = moveDuration;
+        PickNewWaypoint();
+    }
+
+    private void EnterStanding()
+    {
+        _state      = WanderState.Standing;
+        _stateTimer = standDuration;
+        if (_agent.isOnNavMesh) _agent.ResetPath(); // stop moving; agent stays enabled
+    }
+
+    // ── Wander ───────────────────────────────────────────────────────────────
+
     private void PickNewWaypoint()
     {
         const int maxAttempts = 10;
@@ -127,6 +175,6 @@ public class RandomEnemyMovement : EnemyMovementBase
             }
         }
 
-        Debug.LogWarning($"[RandomEnemyMovement] '{name}' — could not find valid waypoint near {transform.position}.");
+        Debug.LogWarning($"[RandomEnemyMovement] '{name}' — no valid waypoint found near {transform.position}.");
     }
 }
