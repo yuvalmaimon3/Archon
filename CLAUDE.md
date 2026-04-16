@@ -37,7 +37,10 @@ a
 - Add logs in important places so i can get feedbacks when i test the game
 
 ## networking 
-- For each new component, explicitly decide: does this state need to be seen by all clients? If yes → NetworkBehaviour. If no → MonoBehaviour. Document the reason in a comment.
+- The main goal is to split the load between the players so the host will not be overload. make sure what parts need to run localy and what at the network.
+- Take in account the game need to run smoth as possible
+- For each new component and subcomponent check if networking behavior needed
+
 
 ## Performance
 - Avoid unnecessary allocations and expensive operations in Update loops.

@@ -23,6 +23,7 @@ description:
 - **build the enemy with uniform standard 
 - **pay attention part of the attribute source locate in different classes for example attack speed locate in enemydata.cs as cooldown 
 - **use prefab and scripted object
+- make sure what components and related components need to use network behavior
 
 
 **Create an new enemy.  
