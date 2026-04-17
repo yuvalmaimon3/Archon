@@ -9,6 +9,7 @@ using UnityEngine;
 /// is suppressed by Health to avoid double-counting. This handler applies a
 /// separate damage hit scaled by reactionDamageMultiplier (default 2x).
 ///
+/// Arc reaction: 1.5x to primary + chains to all nearby wet enemies (full pipeline).
 /// The reaction damage hit carries no element, so it cannot chain-trigger another reaction.
 ///
 /// Attach this component to any entity that has both Health and ElementStatusController.
@@ -24,6 +25,13 @@ public class ReactionDamageHandler : MonoBehaviour
     [Tooltip("Multiplier applied to the triggering attack's base damage. 2 = double damage.")]
     [SerializeField] private float reactionDamageMultiplier = 2f;
 
+    [Header("Arc Reaction")]
+    [Tooltip("Damage multiplier for Arc (overrides general multiplier). Applied to primary and all chained wet enemies.")]
+    [SerializeField] private float arcDamageMultiplier = 1.5f;
+    [Tooltip("Radius to scan for nearby wet enemies when Arc triggers.")]
+    [SerializeField] private float arcAoeRadius = 8f;
+    [SerializeField] private string arcEnemyTag = "Enemy";
+
     // ── Global reaction event ─────────────────────────────────────────────────
 
     // Fired server-side after this entity takes reaction damage.
@@ -37,7 +45,6 @@ public class ReactionDamageHandler : MonoBehaviour
     private ElementStatusController _elementStatus;
 
     // Cached NetworkObject — null on non-networked entities.
-    // Used to gate reaction damage to the server only (same pattern as Projectile.cs).
     private NetworkObject _networkObject;
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
@@ -47,7 +54,7 @@ public class ReactionDamageHandler : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
-        Subscribe(); // Awake-time subscription covers Edit Mode tests where OnEnable may not fire
+        Subscribe();
     }
 
     private void OnEnable()
@@ -61,7 +68,6 @@ public class ReactionDamageHandler : MonoBehaviour
         Unsubscribe();
     }
 
-    // Ensures subscription even when OnEnable fires before references are ready
     private void Start()
     {
         CacheReferences();
@@ -91,22 +97,13 @@ public class ReactionDamageHandler : MonoBehaviour
 
     // ── Reaction handling ────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called when a reaction is detected on this entity.
-    /// Computes reaction damage and applies it as a plain (element-free) hit.
-    ///
-    /// Networked: only runs on the server so damage authority stays server-side.
-    /// Non-networked (solo/editor): always runs.
-    /// </summary>
     private void HandleReaction(ReactionResult result)
     {
-        // In networked mode, only the server applies damage (matches Projectile.cs authority model)
         if (_networkObject != null && NetworkManager.Singleton != null && !NetworkManager.Singleton.IsServer) return;
 
-        int reactionDamage = Mathf.RoundToInt(result.BaseDamage * reactionDamageMultiplier);
+        float multiplier = result.ReactionType == ReactionType.Arc ? arcDamageMultiplier : reactionDamageMultiplier;
+        int reactionDamage = Mathf.RoundToInt(result.BaseDamage * multiplier);
 
-        // Skip zero-damage reactions (e.g. pure element applications with baseDamage = 0).
-        // Avoids firing OnDamaged and running the full Health.TakeDamage pipeline for no effect.
         if (reactionDamage <= 0)
         {
             Debug.Log($"[ReactionDamageHandler] {gameObject.name} — " +
@@ -116,23 +113,44 @@ public class ReactionDamageHandler : MonoBehaviour
 
         Debug.Log($"[ReactionDamageHandler] {gameObject.name} — " +
                   $"{result.ReactionType} reaction! " +
-                  $"Base damage: {result.BaseDamage} × {reactionDamageMultiplier} = {reactionDamage}");
+                  $"Base damage: {result.BaseDamage} × {multiplier} = {reactionDamage}");
 
-        // Build a plain DamageInfo with no element — prevents recursive reactions.
-        // Carry isCritical from the triggering attack so reaction damage numbers show red.
         var reactionDamageInfo = new DamageInfo(
             amount:             reactionDamage,
-            source:             null,                // reaction is environmental, no attacker
+            source:             null,
             hitPoint:           transform.position,
             hitDirection:       Vector3.zero,
-            elementApplication: default,             // no element = no reaction loop
+            elementApplication: default,
             isCritical:         result.IsCritical
         );
 
         _health.TakeDamage(reactionDamageInfo);
-
-        // Broadcast to per-player upgrade effects (e.g. BlastReactionUpgradeEffect).
-        // Source is the player whose attack triggered the reaction — null for non-player sources.
         OnAnyReactionDamage?.Invoke(transform.position, reactionDamage, result.Source);
+
+        if (result.ReactionType == ReactionType.Arc)
+            ChainArcToNearbyWetEnemies(result);
+    }
+
+    // Finds all wet (Water element) enemies within arcAoeRadius and triggers the full
+    // Arc reaction pipeline on each — same damage, VFX, and audio as the primary hit.
+    // OverlapSphere is 3D so flying enemies are included. Chain terminates naturally:
+    // Arc uses ClearAll, so reacted enemies lose Water and won't react again.
+    private void ChainArcToNearbyWetEnemies(ReactionResult result)
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, arcAoeRadius);
+
+        foreach (var hit in hits)
+        {
+            if (hit.gameObject == gameObject) continue;
+            if (!hit.CompareTag(arcEnemyTag)) continue;
+            if (!hit.TryGetComponent<ElementStatusController>(out var enemyElement)) continue;
+            if (enemyElement.CurrentElement != ElementType.Water) continue;
+
+            Debug.Log($"[ReactionDamageHandler] Arc chain → {hit.gameObject.name}");
+
+            // Apply Lightning to the wet enemy — triggers full Arc reaction on their pipeline
+            var lightningApplication = new ElementApplication(ElementType.Lightning, 1f, result.Source);
+            enemyElement.ApplyElement(lightningApplication, result.BaseDamage, result.IsCritical);
+        }
     }
 }
