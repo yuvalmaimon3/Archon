@@ -57,7 +57,7 @@ public class GroundEnemyMovement : EnemyMovementBase
     {
         if (!IsServer) return;
         if (EnemyData == null) return;
-        if (IsKnockedBack) return;
+        if (IsBlocked) return;
 
         _target = FindNearestPlayer();
 
@@ -102,7 +102,13 @@ public class GroundEnemyMovement : EnemyMovementBase
     // Called by EnemyInitializer after ComputeStats() to reflect level growth.
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         _agent.speed = Mathf.Max(0f, speed);
+    }
+
+    protected override void OnMovementSuspended()
+    {
+        if (_agent.isOnNavMesh) _agent.ResetPath();
     }
 
     // Stops the NavMeshAgent immediately on death.

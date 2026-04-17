@@ -1,0 +1,1 @@
+electro / lightning - When enemy is effect by electro. it get stuck each 2 second. stuck mean it stop move for 0.5 second. but it can knockback. like it get a shock so it stop moving by him self but other forces can move it

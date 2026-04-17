@@ -79,7 +79,7 @@ public class RollingEnemyMovement : EnemyMovementBase
     {
         if (!IsServer) return;
         if (EnemyData == null) return;
-        if (IsKnockedBack) return;
+        if (IsBlocked) return;
 
         // Switch to a new random direction on the scheduled interval.
         if (Time.time >= _nextDirectionChangeTime)
@@ -108,6 +108,7 @@ public class RollingEnemyMovement : EnemyMovementBase
     // can be faster without touching the rollForce.
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         maxSpeed = Mathf.Max(0f, speed);
         Debug.Log($"[RollingEnemyMovement] '{name}' maxSpeed updated to {maxSpeed:F2}.");
     }

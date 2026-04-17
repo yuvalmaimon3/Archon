@@ -1,0 +1,1 @@
+Fire - When enemy effect by a fire it hit by 10% of the player attack each 1 seconds.

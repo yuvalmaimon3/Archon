@@ -2,7 +2,7 @@ important the project should be clear as possible so i can be involve in the cod
 
 # MCP
 - if the mcp not connect try to reconnect. if the MCP still not workring stop and tell me
-
+- Use Unity skills only as needed to verify unfamiliar or complex tool schemas, then prefer direct MCP tool calls without re-reading skills or using bash wrappers when the schema is already clear.
 
 # Memory
 At the start of each session run 'git branch' look at the current brnach name to get context, read  the essential memory files needed to restore current project context (overview, active decisions, recent feedback, next steps). Read additional files from `.claude/memory/`  when relevant to the current task. On a new machine, copy the memory files into `~/.claude/projects/<project-path>/memory/` if needed for the local auto-memory system.
@@ -37,7 +37,10 @@ a
 - Add logs in important places so i can get feedbacks when i test the game
 
 ## networking 
-- For each new component, explicitly decide: does this state need to be seen by all clients? If yes → NetworkBehaviour. If no → MonoBehaviour. Document the reason in a comment.
+- The main goal is to split the load between the players so the host will not be overload. make sure what parts need to run localy and what at the network.
+- Take in account the game need to run smoth as possible
+- For each new component and subcomponent check if networking behavior needed
+
 
 ## Performance
 - Avoid unnecessary allocations and expensive operations in Update loops.

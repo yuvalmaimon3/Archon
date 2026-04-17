@@ -4,8 +4,8 @@ Create an arena style  archero
 - add default light
 - random obstacles  color. make sure they sit on the ground 
 - 4 boxes grey surrounded  the arena 
-- make the camera angel like archero 
-- add network manager
+- static (not follow the player)camera high about 45 degrees watch the whole field  like brawlstar 
+- default light
 
 
 - add player 

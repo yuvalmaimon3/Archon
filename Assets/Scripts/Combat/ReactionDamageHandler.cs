@@ -15,6 +15,7 @@ using UnityEngine;
 /// For networked entities, damage is only applied on the server (matching how projectile
 /// hits are processed in Projectile.cs).
 /// </summary>
+[ExecuteAlways]
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(ElementStatusController))]
 public class ReactionDamageHandler : MonoBehaviour
@@ -41,21 +42,51 @@ public class ReactionDamageHandler : MonoBehaviour
 
     // ── Unity lifecycle ──────────────────────────────────────────────────────
 
+    private bool _subscribed;
+
     private void Awake()
     {
-        _health        = GetComponent<Health>();
-        _elementStatus = GetComponent<ElementStatusController>();
-        TryGetComponent(out _networkObject);
+        CacheReferences();
+        Subscribe(); // Awake-time subscription covers Edit Mode tests where OnEnable may not fire
     }
 
     private void OnEnable()
     {
-        _elementStatus.OnReactionTriggered += HandleReaction;
+        CacheReferences();
+        Subscribe();
     }
 
     private void OnDisable()
     {
+        Unsubscribe();
+    }
+
+    // Ensures subscription even when OnEnable fires before references are ready
+    private void Start()
+    {
+        CacheReferences();
+        Subscribe();
+    }
+
+    private void CacheReferences()
+    {
+        if (_health == null) _health = GetComponent<Health>();
+        if (_elementStatus == null) _elementStatus = GetComponent<ElementStatusController>();
+        if (_networkObject == null) TryGetComponent(out _networkObject);
+    }
+
+    private void Subscribe()
+    {
+        if (_subscribed || _elementStatus == null) return;
+        _elementStatus.OnReactionTriggered += HandleReaction;
+        _subscribed = true;
+    }
+
+    private void Unsubscribe()
+    {
+        if (!_subscribed || _elementStatus == null) return;
         _elementStatus.OnReactionTriggered -= HandleReaction;
+        _subscribed = false;
     }
 
     // ── Reaction handling ────────────────────────────────────────────────────

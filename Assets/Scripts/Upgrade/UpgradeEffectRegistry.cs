@@ -31,6 +31,7 @@ public static class UpgradeEffectRegistry
         { UpgradeEffectType.HealPercent,         new HealPercentHandler() },
         { UpgradeEffectType.DamagePercent,       new DamagePercentHandler() },
         { UpgradeEffectType.MoveSpeedFlat,       new MoveSpeedFlatHandler() },
+        { UpgradeEffectType.MoveSpeedPercent,    new MoveSpeedPercentHandler() },
         { UpgradeEffectType.AttackSpeedPercent,   new AttackSpeedPercentHandler() },
         { UpgradeEffectType.ProjectileSplit,      new ProjectileSplitHandler() },
         { UpgradeEffectType.BlastReaction,        new BlastReactionHandler() },
@@ -94,6 +95,17 @@ public class MoveSpeedFlatHandler : IUpgradeEffectHandler
 
         ctx.Movement.AddSpeedBonus(upgrade.value);
         Debug.Log($"[Upgrade] Move speed +{upgrade.value}");
+    }
+}
+
+public class MoveSpeedPercentHandler : IUpgradeEffectHandler
+{
+    public void Apply(UpgradeDefinition upgrade, UpgradeContext ctx)
+    {
+        if (ctx.Movement == null) return;
+
+        ctx.Movement.AddSpeedMultiplier(upgrade.value);
+        Debug.Log($"[Upgrade] Move speed +{upgrade.value * 100f:F0}%");
     }
 }
 

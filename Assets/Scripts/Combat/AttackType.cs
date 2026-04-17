@@ -11,5 +11,17 @@ public enum AttackType
     Melee,
 
     /// <summary>Deals damage on direct physical contact (e.g. enemy body touch, trap).</summary>
-    Contact
+    Contact,
+
+    /// <summary>
+    /// Marks one or more ground locations with a warning indicator, then strikes with AOE damage after a delay.
+    /// Think: fire from the ground, lightning from above, meteor shower.
+    /// </summary>
+    CallDown,
+
+    /// <summary>
+    /// Spawns one or more enemy instances at valid NavMesh positions near the attacker.
+    /// Summoned enemies are fully independent — they pathfind, attack, and die on their own.
+    /// </summary>
+    Summoning
 }

@@ -51,6 +51,49 @@ public class AttackDefinition : ScriptableObject
     [Min(0.05f)]
     [SerializeField] private float contactTickInterval = 0.5f;
 
+    [Header("Summoning")]
+    [Tooltip("Enemy prefab to summon. Must have EnemyInitializer. Must have NetworkObject for multiplayer.")]
+    [SerializeField] private GameObject summoningPrefab;
+
+    [Tooltip("How many enemies to summon per attack.")]
+    [Min(1)]
+    [SerializeField] private int summoningCount = 1;
+
+    [Tooltip("Radius around the summoner in which spawns are scattered.")]
+    [Min(0f)]
+    [SerializeField] private float summoningSpreadRadius = 3f;
+
+    [Tooltip("Level applied to each summoned enemy via EnemyInitializer.")]
+    [Min(1)]
+    [SerializeField] private int summoningMinionLevel = 1;
+
+    [Tooltip("Max search radius passed to NavMesh.SamplePosition to find a valid spawn point near the candidate.")]
+    [Min(0.5f)]
+    [SerializeField] private float summoningNavMeshSearchRadius = 2f;
+
+    [Header("CallDown")]
+    [Tooltip("Prefab spawned at each strike location. Required when AttackType is CallDown.")]
+    [SerializeField] private CallDownZone callDownZonePrefab;
+
+    [Tooltip("Seconds the warning indicator is shown before the strike lands.")]
+    [Min(0.1f)]
+    [SerializeField] private float callDownWarnDuration = 1.5f;
+
+    [Tooltip("Radius of the AOE damage sphere when the strike lands.")]
+    [Min(0f)]
+    [SerializeField] private float callDownAoeRadius = 2f;
+
+    [Tooltip("Number of strike zones spawned per attack. 1 = single hit; >1 = first at targetPosition + rest scattered.")]
+    [Min(1)]
+    [SerializeField] private int callDownTargetCount = 1;
+
+    [Tooltip("How far additional zones scatter from the first strike position when TargetCount > 1.")]
+    [Min(0f)]
+    [SerializeField] private float callDownSpreadRadius = 2f;
+
+    [Tooltip("Tag of GameObjects the strike damages. 'Player' for enemy attacks; 'Enemy' for player attacks.")]
+    [SerializeField] private string callDownTargetTag;
+
     [Header("Element")]
     [Tooltip("Element applied to the target on hit. None = non-elemental attack.")]
     [SerializeField] private ElementType elementType = ElementType.None;
@@ -94,6 +137,39 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Radius of the overlap sphere used to detect melee targets.</summary>
     public float MeleeRadius => meleeRadius;
+
+    /// <summary>Enemy prefab spawned on each Summoning attack.</summary>
+    public GameObject SummoningPrefab => summoningPrefab;
+
+    /// <summary>How many enemies to summon per attack.</summary>
+    public int SummoningCount => summoningCount;
+
+    /// <summary>Scatter radius around the summoner for spawn positions.</summary>
+    public float SummoningSpreadRadius => summoningSpreadRadius;
+
+    /// <summary>Level applied to each summoned enemy via EnemyInitializer.</summary>
+    public int SummoningMinionLevel => summoningMinionLevel;
+
+    /// <summary>Max search radius for NavMesh.SamplePosition when finding a valid spawn point.</summary>
+    public float SummoningNavMeshSearchRadius => summoningNavMeshSearchRadius;
+
+    /// <summary>Prefab spawned at each strike location for CallDown attacks.</summary>
+    public CallDownZone CallDownZonePrefab => callDownZonePrefab;
+
+    /// <summary>Seconds the warning indicator is shown before the strike lands.</summary>
+    public float CallDownWarnDuration => callDownWarnDuration;
+
+    /// <summary>Radius of the AOE damage sphere when the strike lands.</summary>
+    public float CallDownAoeRadius => callDownAoeRadius;
+
+    /// <summary>Number of strike zones spawned per attack.</summary>
+    public int CallDownTargetCount => callDownTargetCount;
+
+    /// <summary>Scatter radius for additional zones when TargetCount > 1.</summary>
+    public float CallDownSpreadRadius => callDownSpreadRadius;
+
+    /// <summary>Tag of GameObjects the strike damages.</summary>
+    public string CallDownTargetTag => callDownTargetTag;
 
     /// <summary>Seconds between damage ticks for contact attacks.</summary>
     public float ContactTickInterval => contactTickInterval;

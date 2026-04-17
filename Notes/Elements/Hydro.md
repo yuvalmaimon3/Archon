@@ -1,0 +1,1 @@
+Hydro has no effect on enemies.

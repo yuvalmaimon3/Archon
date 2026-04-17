@@ -8,6 +8,7 @@ public enum EnemyRole
     Ranged,
     Tank,
     Caster,
+    Summoner,
     Support,
     Boss
 }
@@ -20,7 +21,8 @@ public enum EnemyMovementStyle
     Run,
     Fly,
     Hop,
-    Teleport
+    Teleport,
+    Random  // Wanders to random NavMesh positions; used by enemies like Assassin
 }
 
 // High-level combat behavior. Consumed by the enemy's combat brain to

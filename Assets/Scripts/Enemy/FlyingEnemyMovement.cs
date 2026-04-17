@@ -47,7 +47,7 @@ public class FlyingEnemyMovement : EnemyMovementBase
     {
         if (!IsServer) return;
         if (EnemyData == null) return;
-        if (IsKnockedBack) return;
+        if (IsBlocked) return;
 
         _target = FindNearestPlayer();
 
@@ -78,6 +78,7 @@ public class FlyingEnemyMovement : EnemyMovementBase
     // and Update would always use the unscaled EnemyData.MoveSpeed.
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 

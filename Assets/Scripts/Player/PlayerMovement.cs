@@ -17,15 +17,17 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float acceleration = 20f; // how fast we reach full speed
     [SerializeField] private float deceleration = 15f; // how fast we slow down when no input
 
-    private Rigidbody _rb;      // reference to the physics body
-    private Vector2   _inputDir; // stores the current input direction this frame
+    private Rigidbody _rb;
+    private Vector2   _inputDir;
+
+    private float _baseSpeed;       // captured once so percent upgrades scale correctly
+    private float _speedMultiplier = 1f;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
-
-        // Prevent the sphere from tipping or rolling on its own axis
         _rb.freezeRotation = true;
+        _baseSpeed = moveSpeed;
     }
 
     /// <summary>
@@ -98,13 +100,20 @@ public class PlayerMovement : NetworkBehaviour
         ApplyMovement(input);
     }
 
-    // Permanently increases the player's move speed by the given amount.
-    // Called by PlayerUpgradeHandler on the server when the player picks a MoveSpeedFlat upgrade.
-    // The change persists for the rest of the run (stats carry between rooms).
+    // Flat bonus — adds a fixed amount to current speed.
     public void AddSpeedBonus(float bonus)
     {
-        moveSpeed = Mathf.Max(0f, moveSpeed + bonus);
-        Debug.Log($"[PlayerMovement] '{name}' move speed +{bonus} → {moveSpeed}");
+        _baseSpeed = Mathf.Max(0f, _baseSpeed + bonus);
+        moveSpeed  = _baseSpeed * _speedMultiplier;
+        Debug.Log($"[PlayerMovement] '{name}' speed +{bonus} flat → {moveSpeed:F2}");
+    }
+
+    // Percent bonus — each call multiplies current speed by (1 + fraction), stacks multiplicatively.
+    public void AddSpeedMultiplier(float fraction)
+    {
+        _speedMultiplier *= (1f + fraction);
+        moveSpeed = _baseSpeed * _speedMultiplier;
+        Debug.Log($"[PlayerMovement] '{name}' speed ×{_speedMultiplier:F3} → {moveSpeed:F2}");
     }
 
     /// <summary>

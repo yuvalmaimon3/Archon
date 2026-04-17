@@ -1,0 +1,1 @@
+ice - when enemy effect by an ice it slow down movement speed by 50% 

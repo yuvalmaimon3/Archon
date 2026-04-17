@@ -64,7 +64,13 @@ public class SkeletonArcherMovement : EnemyMovementBase
     // Called by EnemyInitializer after computing scaled stats.
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         _agent.speed = Mathf.Max(0f, speed);
+    }
+
+    protected override void OnMovementSuspended()
+    {
+        if (_agent.isOnNavMesh) _agent.ResetPath();
     }
 
     // Stops the NavMeshAgent immediately on death.
@@ -104,6 +110,7 @@ public class SkeletonArcherMovement : EnemyMovementBase
     public void MoveTo(Vector3 destination)
     {
         if (!_agent.enabled || !_agent.isOnNavMesh) return;
+        if (IsBlocked) return;
         _agent.SetDestination(destination);
     }
 

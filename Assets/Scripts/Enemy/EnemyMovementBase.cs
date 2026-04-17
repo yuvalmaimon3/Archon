@@ -21,8 +21,18 @@ public abstract class EnemyMovementBase : NetworkBehaviour, IDeathHandler
     // Cached enemy stats — set by Initialize() from EnemyInitializer.
     protected EnemyData EnemyData { get; private set; }
 
+    // Current effective move speed (set by EnemyInitializer via SetMoveSpeed).
+    // Read by ElementStatusEffects to apply and restore Ice slow.
+    public float ScaledSpeed { get; private set; }
+
     // True while a knockback is active — subclasses must pause locomotion when set.
     public bool IsKnockedBack { get; private set; }
+
+    // True while an electro stun is active — pauses self-movement but allows knockback.
+    public bool IsMovementSuspended { get; private set; }
+
+    // Combined block flag: subclasses use this instead of checking IsKnockedBack directly.
+    protected bool IsBlocked => IsKnockedBack || IsMovementSuspended;
 
     // ── Public API ───────────────────────────────────────────────────────────
 
@@ -30,16 +40,38 @@ public abstract class EnemyMovementBase : NetworkBehaviour, IDeathHandler
     // Subclasses override to apply type-specific settings (agent speed, etc.).
     public virtual void Initialize(EnemyData data)
     {
-        EnemyData = data;
+        EnemyData    = data;
+        ScaledSpeed  = data.MoveSpeed;
         OnInitialized(data);
         Debug.Log($"[{GetType().Name}] '{name}' initialized as '{data.EnemyName}'.");
     }
 
-    // Applies a level-scaled move speed after Initialize() has already run.
-    // Called by EnemyInitializer after computing scaled stats so subclasses
-    // can update their agent/controller without a full re-initialize.
-    // Subclasses override to update the appropriate speed field (e.g. NavMeshAgent.speed).
-    public virtual void SetMoveSpeed(float speed) { }
+    // Applies a level-scaled move speed. Updates ScaledSpeed so effect systems
+    // (e.g. ice slow) can read and restore the correct base.
+    // Subclasses MUST call base.SetMoveSpeed(speed) before their own logic.
+    public virtual void SetMoveSpeed(float speed)
+    {
+        ScaledSpeed = speed;
+    }
+
+    // Pauses self-directed movement (electro stun). Knockback can still apply.
+    // Subclasses override OnMovementSuspended to stop their locomotion system immediately.
+    public void SuspendMovement()
+    {
+        IsMovementSuspended = true;
+        OnMovementSuspended();
+    }
+
+    // Resumes self-directed movement after a stun ends.
+    public void ResumeMovement()
+    {
+        IsMovementSuspended = false;
+        OnMovementResumed();
+    }
+
+    // Override in NavMesh subclasses to reset the agent path on stun start.
+    protected virtual void OnMovementSuspended() { }
+    protected virtual void OnMovementResumed()   { }
 
     // Called by KnockbackHandler when knockback starts.
     // Subclasses should suspend movement and hand off control to Rigidbody.
