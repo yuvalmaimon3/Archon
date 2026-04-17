@@ -92,6 +92,10 @@ public class Health : MonoBehaviour, IDamageable
         // multiple projectiles land on the same frame
         if (IsDead) return;
 
+        // Lazy-init — covers cases where Awake ran before ESC was added
+        if (_elementStatus == null)
+            TryGetComponent(out _elementStatus);
+
         bool hasElement = damageInfo.ElementApplication.Element != ElementType.None;
 
         // Check BEFORE applying damage whether this element would trigger a reaction.
