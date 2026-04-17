@@ -42,6 +42,12 @@ public class ElementStatusEffects : NetworkBehaviour
         _movement      = GetComponent<EnemyMovementBase>();
         _health        = GetComponent<Health>();
 
+        if (_elementStatus == null || _movement == null || _health == null)
+        {
+            Debug.LogError($"[ElementStatusEffects] '{name}' missing required component — effects will not work.");
+            return;
+        }
+
         _elementStatus.OnElementChanged += OnElementChanged;
 
         Debug.Log($"[ElementStatusEffects] '{name}' ready.");

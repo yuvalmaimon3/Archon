@@ -21,8 +21,10 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
 
     // ── Read-only state ──────────────────────────────────────────────────────
 
+    // Visible in Inspector at runtime for playtesting — do not set manually.
+    [SerializeField] private ElementType _currentElement = ElementType.None;
     /// <summary>The element currently affecting this object. None = clean state.</summary>
-    public ElementType CurrentElement { get; private set; } = ElementType.None;
+    public ElementType CurrentElement => _currentElement;
 
     /// <summary>Strength of the current element. 0 when no element is active.</summary>
     public float CurrentStrength { get; private set; } = 0f;
@@ -116,7 +118,7 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         else
         {
             // No reaction — store incoming element normally
-            CurrentElement         = application.Element;
+            _currentElement        = application.Element;
             CurrentStrength        = application.Strength;
             LastApplicationSource  = application.Source;
 
@@ -137,7 +139,7 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     /// </summary>
     public void ClearElement()
     {
-        CurrentElement  = ElementType.None;
+        _currentElement = ElementType.None;
         CurrentStrength = 0f;
         _elementTimer   = 0f;
 
@@ -158,7 +160,7 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         {
             case ReactionOutcomeType.ClearAll:
                 // Both elements consumed — reset to clean state
-                CurrentElement  = ElementType.None;
+                _currentElement = ElementType.None;
                 CurrentStrength = 0f;
                 break;
 
@@ -168,14 +170,14 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
 
             case ReactionOutcomeType.ReplaceWithIncoming:
                 // Store the incoming element as the new state
-                CurrentElement        = incoming.Element;
+                _currentElement       = incoming.Element;
                 CurrentStrength       = incoming.Strength;
                 LastApplicationSource = incoming.Source;
                 break;
 
             case ReactionOutcomeType.ReplaceWithSpecificElement:
                 // Reaction produces a specific resulting element (e.g. Freeze → Ice)
-                CurrentElement        = result.ResultElement;
+                _currentElement       = result.ResultElement;
                 CurrentStrength       = result.ResultStrength;
                 LastApplicationSource = incoming.Source;
                 break;
