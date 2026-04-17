@@ -33,6 +33,9 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     /// </summary>
     public ReactionType LastReaction { get; private set; } = ReactionType.None;
 
+    /// <summary>The GameObject (e.g. player) that last applied the current element.</summary>
+    public GameObject LastApplicationSource { get; private set; }
+
     private float _elementTimer = 0f;
 
     // ── Events ───────────────────────────────────────────────────────────────
@@ -113,8 +116,9 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
         else
         {
             // No reaction — store incoming element normally
-            CurrentElement  = application.Element;
-            CurrentStrength = application.Strength;
+            CurrentElement         = application.Element;
+            CurrentStrength        = application.Strength;
+            LastApplicationSource  = application.Source;
 
             Debug.Log($"[ElementStatusController] {gameObject.name} — " +
                       $"element set to {CurrentElement} (strength: {CurrentStrength:F1})");
@@ -164,14 +168,16 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
 
             case ReactionOutcomeType.ReplaceWithIncoming:
                 // Store the incoming element as the new state
-                CurrentElement  = incoming.Element;
-                CurrentStrength = incoming.Strength;
+                CurrentElement        = incoming.Element;
+                CurrentStrength       = incoming.Strength;
+                LastApplicationSource = incoming.Source;
                 break;
 
             case ReactionOutcomeType.ReplaceWithSpecificElement:
                 // Reaction produces a specific resulting element (e.g. Freeze → Ice)
-                CurrentElement  = result.ResultElement;
-                CurrentStrength = result.ResultStrength;
+                CurrentElement        = result.ResultElement;
+                CurrentStrength       = result.ResultStrength;
+                LastApplicationSource = incoming.Source;
                 break;
         }
     }

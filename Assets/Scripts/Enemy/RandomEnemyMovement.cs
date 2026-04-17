@@ -73,7 +73,7 @@ public class RandomEnemyMovement : EnemyMovementBase
     private void Update()
     {
         if (!IsServer) return;
-        if (IsKnockedBack) return;
+        if (IsBlocked) return;
         if (!_agent.enabled || !_agent.isOnNavMesh) return;
 
         _stateTimer -= Time.deltaTime;
@@ -109,7 +109,13 @@ public class RandomEnemyMovement : EnemyMovementBase
 
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         _agent.speed = Mathf.Max(0f, speed);
+    }
+
+    protected override void OnMovementSuspended()
+    {
+        if (_agent.isOnNavMesh) _agent.ResetPath();
     }
 
     protected override void OnDeathCleanup()

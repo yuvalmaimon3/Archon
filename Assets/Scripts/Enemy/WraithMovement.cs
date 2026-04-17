@@ -51,7 +51,7 @@ public class WraithMovement : EnemyMovementBase
     {
         if (!IsServer) return;
         if (EnemyData == null) return;
-        if (IsKnockedBack) return;
+        if (IsBlocked) return;
 
         Transform target = FindNearestPlayer();
         if (target == null) return;
@@ -79,6 +79,7 @@ public class WraithMovement : EnemyMovementBase
     // Stores the level-scaled move speed from EnemyInitializer.
     public override void SetMoveSpeed(float speed)
     {
+        base.SetMoveSpeed(speed);
         _scaledMoveSpeed = Mathf.Max(0f, speed);
     }
 
