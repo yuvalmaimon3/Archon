@@ -1,1 +1,1 @@
-When enemy effect by a fire it burning i.e. the enemy hit by 10% of the player attack each 2 seconds.
+Fire - When enemy effect by a fire it hit by 10% of the player attack each 1 seconds.
