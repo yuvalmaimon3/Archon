@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -39,6 +40,15 @@ public class ReactionDamageHandler : MonoBehaviour
     [Header("Plasma Reaction")]
     [SerializeField] private float plasmaDamageMultiplier = 1.75f;
     [SerializeField] private float plasmaKnockbackForce = 10f;
+
+    [Header("Frozen Reaction")]
+    [SerializeField] private float frozenDamageMultiplier = 1.4f;
+    [SerializeField] private float frozenDuration = 2f;
+
+    // ── Private references ── cached once, used by freeze coroutine ─────────
+    private EnemyMovementBase _movement;
+    private AttackController  _attackController;
+    private Animator          _animator;
 
     // ── Global reaction event ─────────────────────────────────────────────────
 
@@ -87,6 +97,9 @@ public class ReactionDamageHandler : MonoBehaviour
         if (_health == null) _health = GetComponent<Health>();
         if (_elementStatus == null) _elementStatus = GetComponent<ElementStatusController>();
         if (_networkObject == null) TryGetComponent(out _networkObject);
+        if (_movement == null) TryGetComponent(out _movement);
+        if (_attackController == null) TryGetComponent(out _attackController);
+        if (_animator == null) TryGetComponent(out _animator);
     }
 
     private void Subscribe()
@@ -114,6 +127,7 @@ public class ReactionDamageHandler : MonoBehaviour
             ReactionType.Arc          => arcDamageMultiplier,
             ReactionType.ThermalShock => thermalShockDamageMultiplier,
             ReactionType.Plasma       => plasmaDamageMultiplier,
+            ReactionType.Frozen       => frozenDamageMultiplier,
             _                         => reactionDamageMultiplier
         };
         int reactionDamage = Mathf.RoundToInt(result.BaseDamage * multiplier);
@@ -149,6 +163,30 @@ public class ReactionDamageHandler : MonoBehaviour
 
         if (result.ReactionType == ReactionType.Plasma)
             ApplyPlasmaKnockback(result.Source);
+
+        if (result.ReactionType == ReactionType.Frozen)
+            StartCoroutine(FreezeCoroutine());
+    }
+
+    // Freezes this enemy for frozenDuration seconds:
+    // stops movement, blocks attacks, pauses animation — then restores all three.
+    private IEnumerator FreezeCoroutine()
+    {
+        _movement?.SuspendMovement();
+        _attackController?.BlockAttacks();
+
+        if (_animator != null) _animator.speed = 0f;
+
+        Debug.Log($"[ReactionDamageHandler] '{name}' frozen for {frozenDuration}s.");
+
+        yield return new WaitForSeconds(frozenDuration);
+
+        _movement?.ResumeMovement();
+        _attackController?.UnblockAttacks();
+
+        if (_animator != null) _animator.speed = 1f;
+
+        Debug.Log($"[ReactionDamageHandler] '{name}' freeze ended.");
     }
 
     private void ApplyPlasmaKnockback(GameObject source)

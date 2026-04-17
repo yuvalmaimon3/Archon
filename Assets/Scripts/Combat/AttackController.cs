@@ -86,9 +86,15 @@ public class AttackController : MonoBehaviour
 
     // ── Public API ───────────────────────────────────────────────────────────
 
+    // True while attacks are externally blocked (e.g. frozen status).
+    public bool IsAttackBlocked { get; private set; }
+
+    // Block/unblock attacks from external systems (freeze, stun, etc.).
+    public void BlockAttacks()   => IsAttackBlocked = true;
+    public void UnblockAttacks() => IsAttackBlocked = false;
+
     // Returns true when this controller is fully ready to fire:
-    // a definition is assigned and the cooldown has elapsed.
-    // Future conditions (ammo, charge, status effects) belong here, not in IsReady.
+    // a definition is assigned, the cooldown has elapsed, and attacks are not blocked.
     public bool CanUseAttack()
     {
         if (attackDefinition == null)
@@ -97,7 +103,7 @@ public class AttackController : MonoBehaviour
             return false;
         }
 
-        return IsReady;
+        return IsReady && !IsAttackBlocked;
     }
 
     // Replaces the current attack definition at runtime.
