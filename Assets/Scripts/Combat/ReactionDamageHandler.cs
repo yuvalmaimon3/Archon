@@ -36,6 +36,10 @@ public class ReactionDamageHandler : MonoBehaviour
     [SerializeField] private float thermalShockDamageMultiplier = 1.6f;
     [SerializeField] private float thermalShockKnockbackForce = 10f;
 
+    [Header("Plasma Reaction")]
+    [SerializeField] private float plasmaDamageMultiplier = 1.75f;
+    [SerializeField] private float plasmaKnockbackForce = 10f;
+
     // ── Global reaction event ─────────────────────────────────────────────────
 
     // Fired server-side after this entity takes reaction damage.
@@ -109,6 +113,7 @@ public class ReactionDamageHandler : MonoBehaviour
         {
             ReactionType.Arc          => arcDamageMultiplier,
             ReactionType.ThermalShock => thermalShockDamageMultiplier,
+            ReactionType.Plasma       => plasmaDamageMultiplier,
             _                         => reactionDamageMultiplier
         };
         int reactionDamage = Mathf.RoundToInt(result.BaseDamage * multiplier);
@@ -141,6 +146,22 @@ public class ReactionDamageHandler : MonoBehaviour
 
         if (result.ReactionType == ReactionType.ThermalShock)
             ApplyThermalShockKnockback(result.Source);
+
+        if (result.ReactionType == ReactionType.Plasma)
+            ApplyPlasmaKnockback(result.Source);
+    }
+
+    private void ApplyPlasmaKnockback(GameObject source)
+    {
+        if (!TryGetComponent<KnockbackHandler>(out var knockback)) return;
+
+        Vector3 direction;
+        if (source != null)
+            direction = (transform.position - source.transform.position).normalized;
+        else
+            direction = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+
+        knockback.ApplyKnockback(direction, plasmaKnockbackForce);
     }
 
     // Knocks this enemy away from the attack source.
