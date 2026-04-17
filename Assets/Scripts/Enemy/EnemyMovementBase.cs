@@ -29,7 +29,7 @@ public abstract class EnemyMovementBase : NetworkBehaviour, IDeathHandler
     public bool IsKnockedBack { get; private set; }
 
     // True while an electro stun is active — pauses self-movement but allows knockback.
-    protected bool IsMovementSuspended { get; private set; }
+    public bool IsMovementSuspended { get; private set; }
 
     // Combined block flag: subclasses use this instead of checking IsKnockedBack directly.
     protected bool IsBlocked => IsKnockedBack || IsMovementSuspended;
