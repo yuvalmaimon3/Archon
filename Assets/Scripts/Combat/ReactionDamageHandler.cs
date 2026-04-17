@@ -32,6 +32,10 @@ public class ReactionDamageHandler : MonoBehaviour
     [SerializeField] private float arcAoeRadius = 8f;
     [SerializeField] private string arcEnemyTag = "Enemy";
 
+    [Header("ThermalShock Reaction")]
+    [SerializeField] private float thermalShockDamageMultiplier = 1.6f;
+    [SerializeField] private float thermalShockKnockbackForce = 10f;
+
     // ── Global reaction event ─────────────────────────────────────────────────
 
     // Fired server-side after this entity takes reaction damage.
@@ -101,7 +105,12 @@ public class ReactionDamageHandler : MonoBehaviour
     {
         if (_networkObject != null && NetworkManager.Singleton != null && !NetworkManager.Singleton.IsServer) return;
 
-        float multiplier = result.ReactionType == ReactionType.Arc ? arcDamageMultiplier : reactionDamageMultiplier;
+        float multiplier = result.ReactionType switch
+        {
+            ReactionType.Arc          => arcDamageMultiplier,
+            ReactionType.ThermalShock => thermalShockDamageMultiplier,
+            _                         => reactionDamageMultiplier
+        };
         int reactionDamage = Mathf.RoundToInt(result.BaseDamage * multiplier);
 
         if (reactionDamage <= 0)
@@ -129,6 +138,24 @@ public class ReactionDamageHandler : MonoBehaviour
 
         if (result.ReactionType == ReactionType.Arc)
             ChainArcToNearbyWetEnemies(result);
+
+        if (result.ReactionType == ReactionType.ThermalShock)
+            ApplyThermalShockKnockback(result.Source);
+    }
+
+    // Knocks this enemy away from the attack source.
+    // Falls back to a random horizontal direction if source is unknown.
+    private void ApplyThermalShockKnockback(GameObject source)
+    {
+        if (!TryGetComponent<KnockbackHandler>(out var knockback)) return;
+
+        Vector3 direction;
+        if (source != null)
+            direction = (transform.position - source.transform.position).normalized;
+        else
+            direction = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+
+        knockback.ApplyKnockback(direction, thermalShockKnockbackForce);
     }
 
     // Finds all wet (Water element) enemies within arcAoeRadius and triggers the full
