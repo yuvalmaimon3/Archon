@@ -16,6 +16,9 @@ using UnityEngine;
 /// </summary>
 public class ElementStatusController : MonoBehaviour, IElementReceiver
 {
+    // Element expires after this many seconds — binary on/off, no decay
+    private const float ElementDuration = 8f;
+
     // ── Read-only state ──────────────────────────────────────────────────────
 
     /// <summary>The element currently affecting this object. None = clean state.</summary>
@@ -30,6 +33,8 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     /// </summary>
     public ReactionType LastReaction { get; private set; } = ReactionType.None;
 
+    private float _elementTimer = 0f;
+
     // ── Events ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -43,6 +48,17 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     /// Passes the full ReactionResult — subscribers use it to apply bonus damage, VFX, audio, etc.
     /// </summary>
     public event Action<ReactionResult> OnReactionTriggered;
+
+    // ── Lifetime ─────────────────────────────────────────────────────────────
+
+    private void Update()
+    {
+        if (CurrentElement == ElementType.None) return;
+
+        _elementTimer -= Time.deltaTime;
+        if (_elementTimer <= 0f)
+            ClearElement();
+    }
 
     // ── IElementReceiver ─────────────────────────────────────────────────────
 
@@ -104,6 +120,10 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
                       $"element set to {CurrentElement} (strength: {CurrentStrength:F1})");
         }
 
+        // Reset timer on every element application (reaction outcome or plain set)
+        if (CurrentElement != ElementType.None)
+            _elementTimer = ElementDuration;
+
         OnElementChanged?.Invoke(CurrentElement, CurrentStrength);
     }
 
@@ -115,6 +135,7 @@ public class ElementStatusController : MonoBehaviour, IElementReceiver
     {
         CurrentElement  = ElementType.None;
         CurrentStrength = 0f;
+        _elementTimer   = 0f;
 
         Debug.Log($"[ElementStatusController] {gameObject.name} — element cleared.");
 
