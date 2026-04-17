@@ -25,8 +25,9 @@ public class ElementStatusEffects : NetworkBehaviour
     private EnemyMovementBase       _movement;
     private Health                  _health;
 
-    private Coroutine   _activeCoroutine;
-    private ElementType _activeElement;   // tracks what effect is currently running
+    private Coroutine        _activeCoroutine;
+    private ElementType      _activeElement;      // tracks what effect is currently running
+    private AttackController _fireSourceAttack;   // cached on fire apply, avoids GetComponent every tick
 
     // Speed cached before ice slow so we can restore it exactly.
     private float _preIceSpeed;
@@ -68,6 +69,9 @@ public class ElementStatusEffects : NetworkBehaviour
                 break;
 
             case ElementType.Fire:
+                _fireSourceAttack = _elementStatus.LastApplicationSource != null
+                    ? _elementStatus.LastApplicationSource.GetComponent<AttackController>()
+                    : null;
                 _activeCoroutine = StartCoroutine(FireDoTCoroutine());
                 break;
 
@@ -106,17 +110,12 @@ public class ElementStatusEffects : NetworkBehaviour
 
             if (_health.IsDead) yield break;
 
-            // Read attacker's current attack damage at tick time (responds to upgrades).
-            GameObject source = _elementStatus.LastApplicationSource;
-            AttackController attackCtrl = source != null
-                ? source.GetComponent<AttackController>()
-                : null;
-
-            int baseDamage = attackCtrl != null ? attackCtrl.EffectiveDamage : 0;
+            int baseDamage = _fireSourceAttack != null ? _fireSourceAttack.EffectiveDamage : 0;
             int tickDamage = Mathf.Max(1, Mathf.RoundToInt(baseDamage * 0.1f));
 
             // No element on tick — avoids triggering reactions from DoT.
-            var info = new DamageInfo(tickDamage, source, transform.position, Vector3.zero);
+            var info = new DamageInfo(tickDamage, _elementStatus.LastApplicationSource,
+                                      transform.position, Vector3.zero);
             _health.TakeDamage(info);
 
             Debug.Log($"[ElementStatusEffects] '{name}' Fire tick — {tickDamage} dmg (base:{baseDamage}).");
@@ -164,6 +163,7 @@ public class ElementStatusEffects : NetworkBehaviour
             _activeCoroutine = null;
         }
 
-        _activeElement = ElementType.None;
+        _activeElement    = ElementType.None;
+        _fireSourceAttack = null;
     }
 }
