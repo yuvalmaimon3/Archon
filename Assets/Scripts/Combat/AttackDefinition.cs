@@ -22,6 +22,10 @@ public class AttackDefinition : ScriptableObject
     [Min(0)]
     [SerializeField] private int damage = 10;
 
+    [Tooltip("Random variation per hit. 0 = fixed. 0.10 = ±10%. Final roll: [damage×(1−v), damage×(1+v)].")]
+    [Range(0f, 1f)]
+    [SerializeField] private float damageVariance = 0f;
+
     [Tooltip("Seconds between attacks. Lower = faster.")]
     [Min(0f)]
     [SerializeField] private float cooldown = 1f;
@@ -119,6 +123,9 @@ public class AttackDefinition : ScriptableObject
 
     /// <summary>Base damage dealt on hit.</summary>
     public int Damage => damage;
+
+    /// <summary>Fractional variance per damage roll. 0 = fixed. 0.10 = ±10%.</summary>
+    public float DamageVariance => damageVariance;
 
     /// <summary>Seconds between consecutive uses of this attack.</summary>
     public float Cooldown => cooldown;

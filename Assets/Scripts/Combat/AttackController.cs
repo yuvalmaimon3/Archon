@@ -48,6 +48,23 @@ public class AttackController : MonoBehaviour
         ? Mathf.Max(0, Mathf.RoundToInt(attackDefinition.Damage * _damageMultiplier))
         : 0;
 
+    // Returns a single rolled damage value for one attack instance.
+    // Applies damageVariance from the AttackDefinition around the level-scaled base.
+    // variance = 0 → always equals EffectiveDamage, no Random call.
+    public int RollDamage()
+    {
+        if (attackDefinition == null) return 0;
+
+        float variance = attackDefinition.DamageVariance;
+        float scaled   = attackDefinition.Damage * _damageMultiplier;
+
+        if (variance <= 0f)
+            return Mathf.Max(0, Mathf.RoundToInt(scaled));
+
+        float rolled = Random.Range(scaled * (1f - variance), scaled * (1f + variance));
+        return Mathf.Max(0, Mathf.RoundToInt(rolled));
+    }
+
     // Cooldown after applying the level multiplier.
     // < 1.0 multiplier = shorter cooldown = faster attacks.
     public float EffectiveCooldown => attackDefinition != null
