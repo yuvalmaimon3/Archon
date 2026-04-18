@@ -144,8 +144,8 @@ public class ElementDamagePipelineTests
         Hit(ElementType.Ice, 1f, 10);
         Assert.AreEqual(40, _health.CurrentHealth);
 
-        // Crack: 25 * 2 = 50 → kills (40 HP left)
-        Hit(ElementType.Lightning, 1f, 25);
+        // Crack: 27 * 1.5 = 41 → kills (40 HP left)
+        Hit(ElementType.Lightning, 1f, 27);
 
         Assert.IsTrue(_health.IsDead);
         Assert.AreEqual(0, _health.CurrentHealth);
@@ -193,7 +193,7 @@ public class ElementDamagePipelineTests
         Hit(ElementType.Ice, 1f, 15);
         Assert.AreEqual(435, _health.CurrentHealth);
         Hit(ElementType.Lightning, 1f, 30);
-        Assert.AreEqual(375, _health.CurrentHealth); // 435 - 60
+        Assert.AreEqual(390, _health.CurrentHealth); // 435 - 45 (30 * 1.5)
 
         // Round 3: Fire + Lightning = Plasma
         Hit(ElementType.Fire, 1f, 10);

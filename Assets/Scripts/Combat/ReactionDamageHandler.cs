@@ -45,6 +45,9 @@ public class ReactionDamageHandler : MonoBehaviour
     [SerializeField] private float frozenDamageMultiplier = 1.4f;
     [SerializeField] private float frozenDuration = 2f;
 
+    [Header("Crack Reaction")]
+    [SerializeField] private float crackDamageMultiplier = 1.5f;
+
     // ── Private references ── cached once, used by freeze coroutine ─────────
     private EnemyMovementBase _movement;
     private AttackController  _attackController;
@@ -128,6 +131,7 @@ public class ReactionDamageHandler : MonoBehaviour
             ReactionType.ThermalShock => thermalShockDamageMultiplier,
             ReactionType.Plasma       => plasmaDamageMultiplier,
             ReactionType.Frozen       => frozenDamageMultiplier,
+            ReactionType.Crack        => crackDamageMultiplier,
             _                         => reactionDamageMultiplier
         };
         int reactionDamage = Mathf.RoundToInt(result.BaseDamage * multiplier);
