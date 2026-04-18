@@ -197,7 +197,7 @@ public class ReactionDamageHandler : MonoBehaviour
         if (source != null)
             direction = (transform.position - source.transform.position).normalized;
         else
-            direction = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+            direction = new Vector3(UnityEngine.Random.insideUnitCircle.x, 0f, UnityEngine.Random.insideUnitCircle.y).normalized;
 
         knockback.ApplyKnockback(direction, plasmaKnockbackForce);
     }
@@ -212,7 +212,7 @@ public class ReactionDamageHandler : MonoBehaviour
         if (source != null)
             direction = (transform.position - source.transform.position).normalized;
         else
-            direction = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+            direction = new Vector3(UnityEngine.Random.insideUnitCircle.x, 0f, UnityEngine.Random.insideUnitCircle.y).normalized;
 
         knockback.ApplyKnockback(direction, thermalShockKnockbackForce);
     }
