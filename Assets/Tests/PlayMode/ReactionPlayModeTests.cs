@@ -13,6 +13,7 @@ using UnityEngine.TestTools;
 // and destroys them in TearDown for full isolation.
 public class ReactionPlayModeTests
 {
+    private GameObject _camera;
     private GameObject _source;
     private GameObject _enemyA;
     private GameObject _enemyB;
@@ -27,6 +28,9 @@ public class ReactionPlayModeTests
     [UnitySetUp]
     public IEnumerator SetUp()
     {
+        _camera  = new GameObject("TestCamera");
+        _camera.AddComponent<Camera>();
+
         _source  = CreateSource("TestSource",  new Vector3(0f, 0f, -5f));
         _enemyA  = CreateEnemy("TestEnemyA",   Vector3.zero,              Color.blue);
         _enemyB  = CreateEnemy("TestEnemyB",   new Vector3(4f, 0f, 0f),   Color.red);
@@ -42,6 +46,7 @@ public class ReactionPlayModeTests
     [UnityTearDown]
     public IEnumerator TearDown()
     {
+        Object.Destroy(_camera);
         Object.Destroy(_source);
         Object.Destroy(_enemyA);
         Object.Destroy(_enemyB);
