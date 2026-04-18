@@ -75,10 +75,11 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 - 🚫 Movement and attack suspended (requires EnemyMovementBase / NetworkBehaviour)
 
 ### ThermalShock — Ice + Fire (1.6× damage + knockback)
+*KnockbackHandler is a NetworkBehaviour. ApplyKnockback() has an IsServer guard — returns immediately without a running NetworkManager.*
 - ✅ Damage = baseDamage × 1.6 (EditMode)
 - ✅ Both elements consumed after reaction (EditMode)
-- ⬜ Enemy is knocked back away from the attack source
-- ⬜ Knockback direction is random when source is unknown
+- 🚫 Enemy is knocked back away from source (KnockbackHandler / NetworkBehaviour)
+- 🚫 Knockback direction is random when source is unknown (KnockbackHandler / NetworkBehaviour)
 
 ### Arc — Water + Lightning (1.5× damage + chain to nearby wet enemies)
 - ✅ Damage = baseDamage × 1.5 (EditMode)
@@ -95,10 +96,11 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 - ✅ Both elements consumed after reaction (EditMode)
 
 ### Plasma — Fire + Lightning (1.75× damage + knockback)
+*Same limitation as ThermalShock — KnockbackHandler is a NetworkBehaviour.*
 - ✅ Damage = baseDamage × 1.75 (EditMode)
 - ✅ Both elements consumed after reaction (EditMode)
-- ⬜ Enemy is knocked back away from the attack source
-- ⬜ Knockback direction is random when source is unknown
+- 🚫 Enemy is knocked back away from source (KnockbackHandler / NetworkBehaviour)
+- 🚫 Knockback direction is random when source is unknown (KnockbackHandler / NetworkBehaviour)
 
 ---
 
