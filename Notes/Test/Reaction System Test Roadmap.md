@@ -57,25 +57,47 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 *Time and physics — needs the real game loop.*
 *File: `ReactionPlayModeTests.cs`*
 
-### Element Lifetime
+### Element Lifetime (shared by all reactions)
 - ✅ Element expires on its own after 8 seconds
 - ✅ Re-applying an element before expiry resets the 8-second timer
 
-### Arc Chain (Physics)
-- ✅ Arc reaction chains to a nearby wet enemy within arcAoeRadius
+### Boiling — Water + Fire (2× damage)
+*No special behavior beyond damage. Fully covered by EditMode pipeline tests.*
+- ✅ Damage = baseDamage × 2 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
+
+### Frozen — Water + Ice (1.4× damage + timed freeze)
+- ✅ Damage = baseDamage × 1.4 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
+- ⬜ Enemy movement is suspended immediately after reaction
+- ⬜ Movement resumes after frozenDuration (2 seconds)
+- ⬜ A new reaction can fire normally after the freeze ends
+
+### ThermalShock — Ice + Fire (1.6× damage + knockback)
+- ✅ Damage = baseDamage × 1.6 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
+- ⬜ Enemy is knocked back away from the attack source
+- ⬜ Knockback direction is random when source is unknown
+
+### Arc — Water + Lightning (1.5× damage + chain to nearby wet enemies)
+- ✅ Damage = baseDamage × 1.5 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
+- ✅ Arc chains to a nearby wet enemy within arcAoeRadius
 - ⬜ Arc does NOT chain to enemies outside arcAoeRadius
 - ⬜ Arc does NOT chain to objects not tagged "Enemy"
-- ⬜ Arc does NOT chain to enemies that are NOT wet (different element)
+- ⬜ Arc does NOT chain to enemies that have a different element (not Water)
 - ⬜ Arc chains to multiple wet enemies at once
 
-### Frozen Reaction (Timing)
-- ⬜ Frozen: enemy movement is suspended immediately after reaction
-- ⬜ Frozen: movement resumes after frozenDuration (2 seconds)
-- ⬜ Frozen: a second reaction can fire normally after the freeze ends
+### Crack — Ice + Lightning (1.5× damage)
+*No special behavior beyond damage. Fully covered by EditMode pipeline tests.*
+- ✅ Damage = baseDamage × 1.5 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
 
-### Knockback (Physics)
-- ⬜ ThermalShock applies knockback away from source
-- ⬜ Plasma applies knockback away from source
+### Plasma — Fire + Lightning (1.75× damage + knockback)
+- ✅ Damage = baseDamage × 1.75 (EditMode)
+- ✅ Both elements consumed after reaction (EditMode)
+- ⬜ Enemy is knocked back away from the attack source
+- ⬜ Knockback direction is random when source is unknown
 
 ---
 
