@@ -1,0 +1,1 @@
+Base attack need to be range and not a fix number so it create randomness to it self, crit and element reaction.
