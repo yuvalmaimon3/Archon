@@ -48,6 +48,23 @@ public class AttackController : MonoBehaviour
         ? Mathf.Max(0, Mathf.RoundToInt(attackDefinition.Damage * _damageMultiplier))
         : 0;
 
+    // Returns a single rolled damage value for one attack instance.
+    // Applies damageVariance from the AttackDefinition around the level-scaled base.
+    // variance = 0 → always equals EffectiveDamage, no Random call.
+    public int RollDamage()
+    {
+        if (attackDefinition == null) return 0;
+
+        float variance = attackDefinition.DamageVariance;
+        float scaled   = attackDefinition.Damage * _damageMultiplier;
+
+        if (variance <= 0f)
+            return Mathf.Max(0, Mathf.RoundToInt(scaled));
+
+        float rolled = UnityEngine.Random.Range(scaled * (1f - variance), scaled * (1f + variance));
+        return Mathf.Max(0, Mathf.RoundToInt(rolled));
+    }
+
     // Cooldown after applying the level multiplier.
     // < 1.0 multiplier = shorter cooldown = faster attacks.
     public float EffectiveCooldown => attackDefinition != null
@@ -86,9 +103,15 @@ public class AttackController : MonoBehaviour
 
     // ── Public API ───────────────────────────────────────────────────────────
 
+    // True while attacks are externally blocked (e.g. frozen status).
+    public bool IsAttackBlocked { get; private set; }
+
+    // Block/unblock attacks from external systems (freeze, stun, etc.).
+    public void BlockAttacks()   => IsAttackBlocked = true;
+    public void UnblockAttacks() => IsAttackBlocked = false;
+
     // Returns true when this controller is fully ready to fire:
-    // a definition is assigned and the cooldown has elapsed.
-    // Future conditions (ammo, charge, status effects) belong here, not in IsReady.
+    // a definition is assigned, the cooldown has elapsed, and attacks are not blocked.
     public bool CanUseAttack()
     {
         if (attackDefinition == null)
@@ -97,7 +120,7 @@ public class AttackController : MonoBehaviour
             return false;
         }
 
-        return IsReady;
+        return IsReady && !IsAttackBlocked;
     }
 
     // Replaces the current attack definition at runtime.

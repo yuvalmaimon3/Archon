@@ -122,11 +122,12 @@ public class PlayerCombatBrain : NetworkBehaviour
                     _critHandler = GetComponent<PlayerCritHandler>();
 
                 bool meleeCrit    = _critHandler != null && _critHandler.RollCrit();
-                int  meleeDamage  = attackController.EffectiveDamage;
+                int  meleeDamage  = attackController.RollDamage();
                 if (meleeCrit)
                 {
+                    int preCrit = meleeDamage;
                     meleeDamage = Mathf.RoundToInt(meleeDamage * _critHandler.CritMultiplier);
-                    Debug.Log($"[PlayerCombatBrain] MELEE CRITICAL! {attackController.EffectiveDamage} → {meleeDamage} damage.");
+                    Debug.Log($"[PlayerCombatBrain] MELEE CRITICAL! {preCrit} → {meleeDamage} damage.");
                 }
 
                 MeleeAttackExecutor.Execute(transform, def, meleeDamage, meleeCrit);
@@ -195,7 +196,7 @@ public class PlayerCombatBrain : NetworkBehaviour
             _critHandler = GetComponent<PlayerCritHandler>();
 
         bool isCritical   = _critHandler != null && _critHandler.RollCrit();
-        int  baseDamage   = attackController.EffectiveDamage;
+        int  baseDamage   = attackController.RollDamage();
         int  finalDamage  = isCritical
             ? Mathf.RoundToInt(baseDamage * _critHandler.CritMultiplier)
             : baseDamage;
