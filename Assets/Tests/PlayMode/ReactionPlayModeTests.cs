@@ -102,6 +102,74 @@ public class ReactionPlayModeTests
         Assert.AreEqual(70, _healthB.CurrentHealth, "TestEnemyB: 100 - 30 (Arc chain).");
     }
 
+    // B is 10 units away — outside the 8-unit arcAoeRadius. Should not be chained.
+    [UnityTest]
+    public IEnumerator ArcChain_DoesNotHit_EnemyOutsideRadius()
+    {
+        _enemyB.transform.position = new Vector3(10f, 0f, 0f);
+        yield return new WaitForFixedUpdate(); // physics picks up the new position
+
+        _escA.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        _escB.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+
+        Hit(_healthA, ElementType.Lightning, 20);
+        yield return null;
+
+        Assert.AreEqual(100, _healthB.CurrentHealth, "B is outside Arc radius — must not be chained.");
+    }
+
+    // B is not tagged 'Enemy'. Arc only chains to objects with that tag.
+    [UnityTest]
+    public IEnumerator ArcChain_DoesNotHit_WrongTag()
+    {
+        _enemyB.tag = "Untagged";
+
+        _escA.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        _escB.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+
+        Hit(_healthA, ElementType.Lightning, 20);
+        yield return null;
+
+        Assert.AreEqual(100, _healthB.CurrentHealth, "B is not tagged 'Enemy' — must not be chained.");
+    }
+
+    // B has Fire, not Water. Arc only chains to wet (Water) enemies.
+    [UnityTest]
+    public IEnumerator ArcChain_DoesNotHit_NonWetEnemy()
+    {
+        _escA.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        _escB.ApplyElement(new ElementApplication(ElementType.Fire,  1f, _source)); // not wet
+
+        Hit(_healthA, ElementType.Lightning, 20);
+        yield return null;
+
+        Assert.AreEqual(100, _healthB.CurrentHealth, "B has Fire, not Water — must not be chained.");
+    }
+
+    // All wet enemies within range are chained — not just the first one found.
+    // A at (0,0,0) chains to B at (4,0,0) and C at (2,0,0). Each takes 20 × 1.5 = 30 damage.
+    [UnityTest]
+    public IEnumerator ArcChain_HitsAllNearbyWetEnemies()
+    {
+        var enemyC  = CreateEnemy("TestEnemyC", new Vector3(2f, 0f, 0f), Color.yellow);
+        var healthC = enemyC.GetComponent<Health>();
+        var escC    = enemyC.GetComponent<ElementStatusController>();
+
+        yield return new WaitForFixedUpdate(); // register C's collider
+
+        _escA.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        _escB.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        escC.ApplyElement(new ElementApplication(ElementType.Water,  1f, _source));
+
+        Hit(_healthA, ElementType.Lightning, 20);
+        yield return null;
+
+        Assert.AreEqual(70, _healthB.CurrentHealth, "B should be chained.");
+        Assert.AreEqual(70, healthC.CurrentHealth,  "C should also be chained.");
+
+        Object.Destroy(enemyC);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     // Capsule enemy with all reaction components + colored visual for Scene view.

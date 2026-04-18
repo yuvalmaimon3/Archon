@@ -83,10 +83,10 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 - ✅ Damage = baseDamage × 1.5 (EditMode)
 - ✅ Both elements consumed after reaction (EditMode)
 - ✅ Arc chains to a nearby wet enemy within arcAoeRadius
-- ⬜ Arc does NOT chain to enemies outside arcAoeRadius
-- ⬜ Arc does NOT chain to objects not tagged "Enemy"
-- ⬜ Arc does NOT chain to enemies that have a different element (not Water)
-- ⬜ Arc chains to multiple wet enemies at once
+- ✅ Arc does NOT chain to enemies outside arcAoeRadius
+- ✅ Arc does NOT chain to objects not tagged "Enemy"
+- ✅ Arc does NOT chain to enemies that have a different element (not Water)
+- ✅ Arc chains to multiple wet enemies at once
 
 ### Crack — Ice + Lightning (1.5× damage)
 *No special behavior beyond damage. Fully covered by EditMode pipeline tests.*
