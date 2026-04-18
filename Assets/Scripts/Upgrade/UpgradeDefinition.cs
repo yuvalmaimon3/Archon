@@ -22,7 +22,7 @@ public enum UpgradeEffectType
     AttackSpeedPercent, // Reduces attack cooldown by 'value' fraction: value=0.20 → 20% faster attacks
     ProjectileSplit,    // On enemy hit, splits the projectile into 3: forward, +value°, -value° (value = angle in degrees, e.g. 45)
     BlastReaction,      // On any reaction, AoE-damages all enemies within value units (value = blast radius, e.g. 2)
-    LifeSteal,          // Each projectile hit heals the firing player by value% of their max HP (value = fraction, e.g. 0.01 = 1%)
+    LifeSteal,          // Each projectile hit heals the firing player by value% of the damage dealt (value = fraction, e.g. 0.1 = 10%)
 }
 
 // Defines a single upgrade option that can appear in the upgrade selection dialog.
@@ -68,7 +68,7 @@ public class UpgradeDefinition : ScriptableObject
              "  AttackSpeedPercent → fraction by which cooldown is reduced (e.g. 0.20 = 20% faster)\n" +
              "  ProjectileSplit    → angle in degrees between split projectiles (e.g. 45)\n" +
              "  BlastReaction      → blast radius in units around the reaction position (e.g. 2)\n" +
-             "  LifeSteal          → fraction of max HP healed per projectile hit (e.g. 0.01 = 1%)")]
+             "  LifeSteal          → fraction of damage dealt healed per projectile hit (e.g. 0.1 = 10%)")]
     [Min(0f)]
     public float value = 1f;
 }

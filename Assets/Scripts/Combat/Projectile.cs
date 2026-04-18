@@ -256,9 +256,9 @@ public class Projectile : NetworkBehaviour
                     var sourceHealth = _source.GetComponent<Health>();
                     if (sourceHealth != null)
                     {
-                        int healAmount = Mathf.Max(1, Mathf.RoundToInt(sourceHealth.MaxHealth * _lifeStealFraction));
+                        int healAmount = Mathf.Max(1, Mathf.RoundToInt(_damage * _lifeStealFraction));
                         sourceHealth.Heal(healAmount);
-                        Debug.Log($"[Projectile] Life steal — healed '{_source.name}' for {healAmount} HP.");
+                        Debug.Log($"[Projectile] Life steal — healed '{_source.name}' for {healAmount} HP ({_damage} dmg × {_lifeStealFraction}).");
                     }
                 }
             }
