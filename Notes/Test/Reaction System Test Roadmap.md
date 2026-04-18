@@ -67,11 +67,12 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 - ✅ Both elements consumed after reaction (EditMode)
 
 ### Frozen — Water + Ice (1.4× damage + timed freeze)
+*EnemyMovementBase is a NetworkBehaviour — tested via Animator.speed as proxy instead.*
 - ✅ Damage = baseDamage × 1.4 (EditMode)
 - ✅ Both elements consumed after reaction (EditMode)
-- ⬜ Enemy movement is suspended immediately after reaction
-- ⬜ Movement resumes after frozenDuration (2 seconds)
-- ⬜ A new reaction can fire normally after the freeze ends
+- ✅ Animator.speed drops to 0 immediately when freeze fires
+- ✅ Animator.speed restores to 1 after frozenDuration (2 seconds)
+- 🚫 Movement and attack suspended (requires EnemyMovementBase / NetworkBehaviour)
 
 ### ThermalShock — Ice + Fire (1.6× damage + knockback)
 - ✅ Damage = baseDamage × 1.6 (EditMode)
@@ -107,6 +108,5 @@ Legend: ✅ done | ⬜ to do | 🚫 not automated (manual/VFX/network)
 - 🚫 Reaction VFX spawns at the correct position
 - 🚫 VFX auto-destroys after its duration
 - 🚫 Network: VFX syncs to all clients
-- 🚫 Freeze animation: animator speed drops to 0 and recovers
 - 🚫 Damage number color changes for crit reactions
 - 🚫 Arc chain visual (lightning bolt between enemies)

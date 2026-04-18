@@ -8,6 +8,7 @@ using UnityEngine.TestTools;
 //   - Element expiry (real Time.deltaTime)
 //   - Element timer reset on re-application
 //   - Arc chain reaction via Physics.OverlapSphere
+//   - Frozen reaction coroutine timing (via Animator.speed as observable proxy)
 //
 // Each test creates its own scene objects (visible in Hierarchy during the run)
 // and destroys them in TearDown for full isolation.
@@ -170,19 +171,69 @@ public class ReactionPlayModeTests
         Object.Destroy(enemyC);
     }
 
+    // FreezeCoroutine sets Animator.speed = 0 synchronously before its first yield.
+    // Verifies the freeze begins immediately when the Frozen reaction fires.
+    [UnityTest]
+    public IEnumerator FrozenReaction_AnimatorSpeedDropsToZero()
+    {
+        // Animator must exist on the GameObject before ReactionDamageHandler.Start() runs
+        // so it gets cached by CacheReferences(). Created here rather than in SetUp
+        // because only Frozen tests need an Animator.
+        var enemy    = CreateEnemy("TestEnemyFreeze", new Vector3(0f, 0f, 3f), Color.cyan, includeAnimator: true);
+        var health   = enemy.GetComponent<Health>();
+        var esc      = enemy.GetComponent<ElementStatusController>();
+        var animator = enemy.GetComponent<Animator>();
+
+        yield return new WaitForFixedUpdate(); // Start() runs → ReactionDamageHandler caches Animator
+
+        esc.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        Hit(health, ElementType.Ice, 20); // Water + Ice = Frozen
+
+        yield return null; // FreezeCoroutine executes up to its first yield
+
+        Assert.AreEqual(0f, animator.speed, "Animator should be stopped while frozen.");
+
+        Object.Destroy(enemy);
+    }
+
+    // After frozenDuration (default 2s) the coroutine resumes and restores Animator.speed to 1.
+    [UnityTest]
+    public IEnumerator FrozenReaction_AnimatorSpeedRestores_AfterDuration()
+    {
+        var enemy    = CreateEnemy("TestEnemyFreeze", new Vector3(0f, 0f, 3f), Color.cyan, includeAnimator: true);
+        var health   = enemy.GetComponent<Health>();
+        var esc      = enemy.GetComponent<ElementStatusController>();
+        var animator = enemy.GetComponent<Animator>();
+
+        yield return new WaitForFixedUpdate();
+
+        esc.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        Hit(health, ElementType.Ice, 20); // Frozen → animator.speed = 0
+
+        yield return new WaitForSeconds(2.5f); // frozenDuration is 2s — extra 0.5s buffer
+
+        Assert.AreEqual(1f, animator.speed, "Animator speed should be restored after freeze ends.");
+
+        Object.Destroy(enemy);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     // Capsule enemy with all reaction components + colored visual for Scene view.
-    private static GameObject CreateEnemy(string goName, Vector3 position, Color color)
+    // includeAnimator: add Animator before ReactionDamageHandler so Start() caches it.
+    private static GameObject CreateEnemy(string goName, Vector3 position, Color color,
+                                          bool includeAnimator = false)
     {
         var go = new GameObject(goName);
         go.transform.position = position;
         go.tag = "Enemy";
 
-        // Dependency order matches Awake caching in Health and ReactionDamageHandler
+        // Dependency order matters: Health.Awake caches ElementStatusController,
+        // ReactionDamageHandler.Start() caches Animator if present.
         go.AddComponent<CapsuleCollider>();
         go.AddComponent<ElementStatusController>();
         go.AddComponent<Health>();
+        if (includeAnimator) go.AddComponent<Animator>(); // before RDH so Start() finds it
         go.AddComponent<ReactionDamageHandler>();
 
         AddVisual(go, PrimitiveType.Capsule, color);
