@@ -61,7 +61,7 @@ public class AttackController : MonoBehaviour
         if (variance <= 0f)
             return Mathf.Max(0, Mathf.RoundToInt(scaled));
 
-        float rolled = Random.Range(scaled * (1f - variance), scaled * (1f + variance));
+        float rolled = UnityEngine.Random.Range(scaled * (1f - variance), scaled * (1f + variance));
         return Mathf.Max(0, Mathf.RoundToInt(rolled));
     }
 
