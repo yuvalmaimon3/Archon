@@ -28,29 +28,28 @@ This roadmap covers what happens *around* the damage: freezes, slows, stuns, and
 
 ## Batch 2 — Element Status Effects: Ice Slow
 
-*`ElementStatusEffects` has a single `if (!IsServer) return;` guard (line 39).*
-*`EnemyMovementBase` (target of `SetMoveSpeed`) is a `NetworkBehaviour`.*
+*`ElementStatusEffects.OnNetworkSpawn()` never fires without a running NetworkManager — no components are cached and `OnElementChanged` is never subscribed. `EnemyMovementBase` (target of `SetMoveSpeed`) is also a `NetworkBehaviour`, so instantiating it in a test is blocked too (double barrier).*
 
-- 🚫 Move speed reduced to 50% while Ice element is active (`ElementStatusEffects / NetworkBehaviour`)
-- 🚫 Move speed restores to original on element clear (`EnemyMovementBase / NetworkBehaviour`)
+- 🚫 Move speed reduced to 50% while Ice element is active (`ElementStatusEffects.OnNetworkSpawn` never called / `EnemyMovementBase` is `NetworkBehaviour`)
+- 🚫 Move speed restores to original on element clear (same barrier)
 
 ---
 
 ## Batch 3 — Element Status Effects: Fire DoT
 
-*`Health.TakeDamage` is a `MonoBehaviour` method, but the caller (`ElementStatusEffects`) is server-guarded.*
+*`ElementStatusEffects.OnNetworkSpawn()` never fires without a running NetworkManager, so `OnElementChanged` is never subscribed and `FireDoTCoroutine` can never start. `Health.TakeDamage` is a testable `MonoBehaviour`, but the caller is completely blocked.*
 
-- 🚫 HP decreases by 10% of source base damage per second while Fire element is active (`ElementStatusEffects / IsServer guard`)
-- 🚫 DoT stops when element is cleared or expires (`ElementStatusEffects / IsServer guard`)
+- 🚫 HP decreases by 10% of source base damage per second while Fire element is active (`ElementStatusEffects.OnNetworkSpawn` never called)
+- 🚫 DoT stops when element is cleared or expires (same barrier)
 
 ---
 
 ## Batch 4 — Element Status Effects: Lightning Stun
 
-*`EnemyMovementBase.SuspendMovement()` is a `NetworkBehaviour` method.*
+*`ElementStatusEffects.OnNetworkSpawn()` never fires without a running NetworkManager. `EnemyMovementBase.SuspendMovement()` is also a `NetworkBehaviour` method (double barrier).*
 
-- 🚫 Movement suspended for 0.5s every 2s while Lightning element is active (`EnemyMovementBase / NetworkBehaviour`)
-- 🚫 Stun does not block knockback from applying (`EnemyMovementBase / NetworkBehaviour`)
+- 🚫 Movement suspended for 0.5s every 2s while Lightning element is active (`ElementStatusEffects.OnNetworkSpawn` never called / `EnemyMovementBase` is `NetworkBehaviour`)
+- 🚫 Stun does not block knockback from applying (same barrier)
 
 ---
 
