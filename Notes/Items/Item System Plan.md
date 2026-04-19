@@ -74,6 +74,29 @@ Exists for two reasons:
 
 Session 2 (PlayerInventory + PlayerEquipment) is where these get used in gameplay — equipping an item reads its ItemDefinition and applies the stats.
 
+### Gold System (Session 3)
+Three components work together:
+
+**LootTable** (ScriptableObject)
+- Defines how much gold an enemy drops: goldMin / goldMax range
+- Create: Right-click in Project → Create → Arcon/Item/Loot Table
+- One asset can be shared across many enemies of the same type (e.g. all goblins share GoblinLoot)
+
+**GoldDropper** (MonoBehaviour — add to enemy prefabs)
+- Hooks into Health.OnDeath automatically
+- Rolls gold from the assigned LootTable and credits the killing player
+- Setup: Add GoldDropper component to enemy prefab → assign a LootTable asset in the inspector
+
+**PlayerCurrency** (NetworkBehaviour — add to player prefab)
+- Holds the player's gold count, synced to all clients via NetworkVariable
+- Add PlayerCurrency to the Player prefab alongside PlayerInventory and PlayerEquipment
+
+**Gold flow:**
+1. Player kills enemy → Health.OnDeath fires
+2. GoldDropper reads DamageInfo.Source (the player GameObject)
+3. Finds PlayerCurrency on the source, calls AddGold()
+4. Gold count syncs automatically to all clients via NetworkVariable
+
 ---
 
 ## Work Sessions
