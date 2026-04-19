@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Player components available to upgrade effect handlers.
-// Created by PlayerUpgradeHandler and passed into each handler on apply.
+// Player components available to upgrade and item effect handlers.
+// Created by PlayerUpgradeHandler (and later PlayerEquipment) and passed into each handler on apply.
 public class UpgradeContext
 {
     public GameObject GameObject;
@@ -11,6 +11,7 @@ public class UpgradeContext
     public AttackController[] AttackControllers;
     public PlayerMovement Movement;
     public PlayerProjectileModifiers ProjectileModifiers;
+    public PlayerCritHandler CritHandler; // used by item crit effect handlers
 }
 
 // Contract for upgrade effect handlers — one implementation per UpgradeEffectType.
