@@ -1,3 +1,5 @@
+* text=auto
+
 # Treat binary files correctly — prevents line-ending corruption
 *.png -text
 *.jpg -text
