@@ -48,4 +48,14 @@ public class PlayerCritHandler : MonoBehaviour
         _critDamage = Mathf.Max(0f, _critDamage + amount);
         Debug.Log($"[PlayerCritHandler] {gameObject.name} crit damage → +{_critDamage * 100f:F0}%");
     }
+
+    // Resets crit stats to their inspector base values.
+    // Used for full stat recomputation (e.g. re-applying all upgrades from scratch).
+    public void ResetCritStats()
+    {
+        _critChance = baseCritChance;
+        _critDamage = baseCritDamage;
+        Debug.Log($"[PlayerCritHandler] {gameObject.name} crit stats reset to base — " +
+                  $"chance:{_critChance * 100f:F1}% damage:+{_critDamage * 100f:F0}%");
+    }
 }

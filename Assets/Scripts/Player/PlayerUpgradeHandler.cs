@@ -33,12 +33,16 @@ public class PlayerUpgradeHandler : NetworkBehaviour
     private NetworkHealthSync         _healthSync;
     private AttackController[]        _attackControllers;
     private PlayerMovement            _movement;
+    private PlayerCritHandler         _critHandler;
     private PlayerProjectileModifiers _projectileModifiers;
 
     // ── Runtime state ────────────────────────────────────────────────────────
 
     // Upgrades this player has already chosen — used to filter non-stackable upgrades from the pool
     private readonly HashSet<UpgradeDefinition> _acquiredUpgrades = new();
+
+    // Upgrades this player has acquired — exposed for stat recomputation in PlayerEquipment.
+    public IReadOnlyCollection<UpgradeDefinition> AcquiredUpgrades => _acquiredUpgrades;
 
     // The random selection currently presented to the owner — used to map the
     // button index back to the pool index when the ServerRpc is sent.
@@ -60,6 +64,7 @@ public class PlayerUpgradeHandler : NetworkBehaviour
         _healthSync           = GetComponent<NetworkHealthSync>();
         _attackControllers    = GetComponents<AttackController>();
         _movement             = GetComponent<PlayerMovement>();
+        _critHandler          = GetComponent<PlayerCritHandler>();
         _projectileModifiers  = GetComponent<PlayerProjectileModifiers>();
 
         if (_levelSystem == null)
@@ -205,16 +210,25 @@ public class PlayerUpgradeHandler : NetworkBehaviour
 
     // ── Upgrade application (server only) ────────────────────────────────────
 
+    // Re-applies all previously acquired upgrades using the given context.
+    // Called by PlayerEquipment during full stat recomputation.
+    public void ReapplyAllUpgrades(UpgradeContext ctx)
+    {
+        foreach (var upgrade in _acquiredUpgrades)
+            UpgradeEffectRegistry.TryApply(upgrade, ctx);
+    }
+
     // Delegates to UpgradeEffectRegistry — each effect type has its own handler class.
     private void ApplyEffect(UpgradeDefinition upgrade)
     {
         var ctx = new UpgradeContext
         {
-            GameObject         = gameObject,
-            Health             = _health,
-            HealthSync         = _healthSync,
-            AttackControllers  = _attackControllers,
-            Movement           = _movement,
+            GameObject          = gameObject,
+            Health              = _health,
+            HealthSync          = _healthSync,
+            AttackControllers   = _attackControllers,
+            Movement            = _movement,
+            CritHandler         = _critHandler,
             ProjectileModifiers = _projectileModifiers,
         };
 

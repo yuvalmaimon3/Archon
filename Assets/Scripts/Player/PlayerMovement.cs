@@ -20,13 +20,15 @@ public class PlayerMovement : NetworkBehaviour
     private Rigidbody _rb;
     private Vector2   _inputDir;
 
-    private float _baseSpeed;       // captured once so percent upgrades scale correctly
+    private float _originalSpeed;   // inspector value, never modified — used for ResetSpeed
+    private float _baseSpeed;       // accumulated flat bonuses on top of _originalSpeed
     private float _speedMultiplier = 1f;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
         _rb.freezeRotation = true;
+        _originalSpeed = moveSpeed;
         _baseSpeed = moveSpeed;
     }
 
@@ -114,6 +116,25 @@ public class PlayerMovement : NetworkBehaviour
         _speedMultiplier *= (1f + fraction);
         moveSpeed = _baseSpeed * _speedMultiplier;
         Debug.Log($"[PlayerMovement] '{name}' speed ×{_speedMultiplier:F3} → {moveSpeed:F2}");
+    }
+
+    // Reverses a previous AddSpeedMultiplier call. Used by PlayerEquipment on item unequip.
+    public void RemoveSpeedMultiplier(float fraction)
+    {
+        float divisor = 1f + fraction;
+        _speedMultiplier = divisor > 0f ? _speedMultiplier / divisor : 1f;
+        moveSpeed = _baseSpeed * _speedMultiplier;
+        Debug.Log($"[PlayerMovement] '{name}' speed multiplier removed — ×{_speedMultiplier:F3} → {moveSpeed:F2}");
+    }
+
+    // Resets speed to the inspector base value, clearing all flat and percent bonuses.
+    // Used for full stat recomputation (e.g. re-applying all upgrades from scratch).
+    public void ResetSpeed()
+    {
+        _baseSpeed       = _originalSpeed;
+        _speedMultiplier = 1f;
+        moveSpeed        = _originalSpeed;
+        Debug.Log($"[PlayerMovement] '{name}' speed reset to base {moveSpeed:F2}");
     }
 
     /// <summary>
