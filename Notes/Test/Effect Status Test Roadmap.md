@@ -19,12 +19,10 @@ This roadmap covers what happens *around* the damage: freezes, slows, stuns, and
 ## Batch 1 — Frozen: Attack Blocking (PlayMode)
 
 *`AttackController` is a `MonoBehaviour` — testable without networking.*
-*File: `ReactionPlayModeTests.cs` (extend existing) or new `EffectPlayModeTests.cs`*
+*File: `ReactionPlayModeTests.cs`*
 
-- ⬜ `AttackController.IsAttackBlocked` is `true` immediately when Frozen reaction fires
-- ⬜ `AttackController.IsAttackBlocked` returns to `false` after `frozenDuration` (2 seconds)
-
-**Setup:** enemy with `Health + ElementStatusController + ReactionDamageHandler + AttackController + Animator`
+- ✅ `AttackController.IsAttackBlocked` is `true` immediately when Frozen reaction fires
+- ✅ `AttackController.IsAttackBlocked` returns to `false` after `frozenDuration` (2 seconds)
 
 ---
 

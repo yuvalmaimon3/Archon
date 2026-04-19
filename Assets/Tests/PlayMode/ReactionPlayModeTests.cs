@@ -8,7 +8,7 @@ using UnityEngine.TestTools;
 //   - Element expiry (real Time.deltaTime)
 //   - Element timer reset on re-application
 //   - Arc chain reaction via Physics.OverlapSphere
-//   - Frozen reaction coroutine timing (via Animator.speed as observable proxy)
+//   - Frozen reaction coroutine timing (Animator.speed + AttackController.IsAttackBlocked as proxies)
 //
 // Each test creates its own scene objects (visible in Hierarchy during the run)
 // and destroys them in TearDown for full isolation.
@@ -217,23 +217,70 @@ public class ReactionPlayModeTests
         Object.Destroy(enemy);
     }
 
+    // FreezeCoroutine calls _attackController?.BlockAttacks() before its first yield.
+    // AttackController is a MonoBehaviour — testable without a network session.
+    [UnityTest]
+    public IEnumerator FrozenReaction_AttackBlocked_DuringFreeze()
+    {
+        var enemy      = CreateEnemy("TestEnemyFreezeAttack", new Vector3(0f, 0f, 3f), Color.cyan,
+                                     includeAnimator: true, includeAttackController: true);
+        var health     = enemy.GetComponent<Health>();
+        var esc        = enemy.GetComponent<ElementStatusController>();
+        var attackCtrl = enemy.GetComponent<AttackController>();
+
+        yield return new WaitForFixedUpdate(); // Start() runs → RDH caches AttackController
+
+        esc.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        Hit(health, ElementType.Ice, 20); // Water + Ice = Frozen
+
+        yield return null; // FreezeCoroutine runs to first yield
+
+        Assert.IsTrue(attackCtrl.IsAttackBlocked, "Attacks should be blocked while frozen.");
+
+        Object.Destroy(enemy);
+    }
+
+    // After frozenDuration (2s) the coroutine calls _attackController?.UnblockAttacks().
+    [UnityTest]
+    public IEnumerator FrozenReaction_AttackUnblocked_AfterFreeze()
+    {
+        var enemy      = CreateEnemy("TestEnemyFreezeAttack", new Vector3(0f, 0f, 3f), Color.cyan,
+                                     includeAnimator: true, includeAttackController: true);
+        var health     = enemy.GetComponent<Health>();
+        var esc        = enemy.GetComponent<ElementStatusController>();
+        var attackCtrl = enemy.GetComponent<AttackController>();
+
+        yield return new WaitForFixedUpdate();
+
+        esc.ApplyElement(new ElementApplication(ElementType.Water, 1f, _source));
+        Hit(health, ElementType.Ice, 20); // Frozen → attacks blocked
+
+        yield return new WaitForSeconds(2.5f); // frozenDuration = 2s, +0.5s buffer
+
+        Assert.IsFalse(attackCtrl.IsAttackBlocked, "Attacks should be unblocked after freeze ends.");
+
+        Object.Destroy(enemy);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     // Capsule enemy with all reaction components + colored visual for Scene view.
-    // includeAnimator: add Animator before ReactionDamageHandler so Start() caches it.
+    // includeAnimator / includeAttackController: add before ReactionDamageHandler so Start() caches them.
     private static GameObject CreateEnemy(string goName, Vector3 position, Color color,
-                                          bool includeAnimator = false)
+                                          bool includeAnimator = false,
+                                          bool includeAttackController = false)
     {
         var go = new GameObject(goName);
         go.transform.position = position;
         go.tag = "Enemy";
 
         // Dependency order matters: Health.Awake caches ElementStatusController,
-        // ReactionDamageHandler.Start() caches Animator if present.
+        // ReactionDamageHandler.Start() caches optional components if present.
         go.AddComponent<CapsuleCollider>();
         go.AddComponent<ElementStatusController>();
         go.AddComponent<Health>();
-        if (includeAnimator) go.AddComponent<Animator>(); // before RDH so Start() finds it
+        if (includeAnimator)         go.AddComponent<Animator>();
+        if (includeAttackController) go.AddComponent<AttackController>();
         go.AddComponent<ReactionDamageHandler>();
 
         AddVisual(go, PrimitiveType.Capsule, color);
